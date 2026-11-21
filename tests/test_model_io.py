@@ -4,7 +4,9 @@ These tests run on CPU with tiny GPT-2 and Qwen2.5-0.5B fixtures.
 They verify that a round-trip (quantize → save → load) produces a model
 whose output matches the quantized model before saving.
 
-Tests are marked --smoke so they don't run in the default CI suite.
+The GPT-2 and Qwen tests are marked --smoke so they don't run in the default
+CI suite. The local round-trips at the end of the file need no downloads and
+always run.
 """
 
 import copy
@@ -197,3 +199,43 @@ class TestQwenIO:
         assert all(m.quantize_inputs for m in ql_layers), (
             "quantize_inputs=True not preserved after load"
         )
+
+
+# ---------------------------------------------------------------------------
+# Local round-trips (no downloads, run in the default suite)
+# ---------------------------------------------------------------------------
+
+class _TinyMLP(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.fc1 = torch.nn.Linear(256, 128)
+        self.fc2 = torch.nn.Linear(128, 32)
+
+    def forward(self, x):
+        return self.fc2(torch.relu(self.fc1(x)))
+
+
+_LOCAL_CONFIGS = {
+    "int4": lambda: QuantConfig(bits=4, scheme="rtn"),
+    "int8": lambda: QuantConfig(bits=8, scheme="rtn", granularity="per_channel"),
+}
+
+
+class TestLocalRoundTrip:
+    @pytest.mark.parametrize("key", list(_LOCAL_CONFIGS))
+    def test_reloaded_model_matches_saved_model(self, key, tmp_path):
+        """quantize → save → load must give the same outputs, for every dtype."""
+        torch.manual_seed(0)
+        model = _TinyMLP()
+        x = torch.randn(4, 256)
+        quantize(model, _LOCAL_CONFIGS[key]())
+        with torch.no_grad():
+            y_saved = model(x)
+
+        save_quantized(model, tmp_path / key)
+        loaded = load_quantized(_TinyMLP(), tmp_path / key)
+
+        assert loaded.fc1.config.effective_dtype == model.fc1.config.effective_dtype
+        with torch.no_grad():
+            y_loaded = loaded(x)
+        assert torch.equal(y_loaded, y_saved)

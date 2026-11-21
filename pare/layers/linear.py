@@ -185,6 +185,7 @@ class QuantizedLinear(nn.Module):
         instance.in_features = in_features
         instance.out_features = out_features
         instance.quantize_inputs = quantize_inputs
+        instance.use_kernel = False
 
         instance.register_buffer("packed_weight", packed_weight)
         instance.register_buffer(
