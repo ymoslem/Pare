@@ -1,0 +1,449 @@
+{
+  "llama31/fp16": {
+    "wikitext2_ppl": 6.237507941056248,
+    "throughput": [
+      {
+        "batch_size": 1,
+        "tokens_per_sec": 25.755607211257782,
+        "ms_per_token": 38.82649676233996,
+        "peak_vram_gb": 32.193670656,
+        "total_tokens": 128,
+        "oom": false
+      },
+      {
+        "batch_size": 4,
+        "tokens_per_sec": 104.69979891410253,
+        "ms_per_token": 38.204466880415566,
+        "peak_vram_gb": 32.385978368,
+        "total_tokens": 512,
+        "oom": false
+      },
+      {
+        "batch_size": 16,
+        "tokens_per_sec": 303.62830414370745,
+        "ms_per_token": 52.696009501232766,
+        "peak_vram_gb": 33.155207168,
+        "total_tokens": 2048,
+        "oom": false
+      },
+      {
+        "batch_size": 32,
+        "tokens_per_sec": 444.8010941504128,
+        "ms_per_token": 71.94226907449774,
+        "peak_vram_gb": 34.180845568,
+        "total_tokens": 4096,
+        "oom": false
+      }
+    ]
+  },
+  "llama31/rtn-int8": {
+    "wikitext2_ppl": 6.246653264005478,
+    "throughput": [
+      {
+        "batch_size": 1,
+        "tokens_per_sec": 2.115697078107636,
+        "ms_per_token": 472.65745665936265,
+        "peak_vram_gb": 26.151574016,
+        "total_tokens": 128,
+        "oom": false
+      },
+      {
+        "batch_size": 4,
+        "tokens_per_sec": 8.388578142314273,
+        "ms_per_token": 476.8388554221019,
+        "peak_vram_gb": 26.304024576,
+        "total_tokens": 512,
+        "oom": false
+      },
+      {
+        "batch_size": 16,
+        "tokens_per_sec": 32.54366223227391,
+        "ms_per_token": 491.6471872711554,
+        "peak_vram_gb": 26.91361792,
+        "total_tokens": 2048,
+        "oom": false
+      },
+      {
+        "batch_size": 32,
+        "tokens_per_sec": 62.669495527670456,
+        "ms_per_token": 510.61524798569735,
+        "peak_vram_gb": 27.726452736,
+        "total_tokens": 4096,
+        "oom": false
+      }
+    ]
+  },
+  "llama31/gptq-int4": {
+    "wikitext2_ppl": 11.097804813901021,
+    "throughput": [
+      {
+        "batch_size": 1,
+        "tokens_per_sec": 1.141659077628828,
+        "ms_per_token": 875.9182312787743,
+        "peak_vram_gb": 23.10506752,
+        "total_tokens": 128,
+        "oom": false
+      },
+      {
+        "batch_size": 4,
+        "tokens_per_sec": 4.5445295939471295,
+        "ms_per_token": 880.1791070582112,
+        "peak_vram_gb": 23.257649152,
+        "total_tokens": 512,
+        "oom": false
+      },
+      {
+        "batch_size": 16,
+        "tokens_per_sec": 17.903028182455902,
+        "ms_per_token": 893.7035588023718,
+        "peak_vram_gb": 23.867242496,
+        "total_tokens": 2048,
+        "oom": false
+      },
+      {
+        "batch_size": 32,
+        "tokens_per_sec": 35.027498527432975,
+        "ms_per_token": 913.5679493338102,
+        "peak_vram_gb": 24.67994624,
+        "total_tokens": 4096,
+        "oom": false
+      }
+    ]
+  },
+  "llama31/gptq-int4-act_order": {
+    "wikitext2_ppl": 6.5414
+  },
+  "llama31/awq-int4": {
+    "wikitext2_ppl": 6.768812140317563,
+    "throughput": [
+      {
+        "batch_size": 1,
+        "tokens_per_sec": 1.1422402493251216,
+        "ms_per_token": 875.4725641920231,
+        "peak_vram_gb": 23.112145408,
+        "total_tokens": 128,
+        "oom": false
+      },
+      {
+        "batch_size": 4,
+        "tokens_per_sec": 4.548738704782517,
+        "ms_per_token": 879.3646458070725,
+        "peak_vram_gb": 23.264694272,
+        "total_tokens": 512,
+        "oom": false
+      },
+      {
+        "batch_size": 16,
+        "tokens_per_sec": 17.911289312493693,
+        "ms_per_token": 893.2913605967769,
+        "peak_vram_gb": 23.874320384,
+        "total_tokens": 2048,
+        "oom": false
+      },
+      {
+        "batch_size": 32,
+        "tokens_per_sec": 35.03053121653172,
+        "ms_per_token": 913.4888592525385,
+        "peak_vram_gb": 24.687024128,
+        "total_tokens": 4096,
+        "oom": false
+      }
+    ]
+  },
+  "qwen25/fp16": {
+    "wikitext2_ppl": 6.848615531688564,
+    "throughput": [
+      {
+        "batch_size": 1,
+        "tokens_per_sec": 32.41253424052796,
+        "ms_per_token": 30.85226204711944,
+        "peak_vram_gb": 30.571529728,
+        "total_tokens": 128,
+        "oom": false
+      },
+      {
+        "batch_size": 4,
+        "tokens_per_sec": 116.77919707344414,
+        "ms_per_token": 34.25267599232029,
+        "peak_vram_gb": 30.722156544,
+        "total_tokens": 512,
+        "oom": false
+      },
+      {
+        "batch_size": 16,
+        "tokens_per_sec": 351.57798688283344,
+        "ms_per_token": 45.50910636316985,
+        "peak_vram_gb": 31.338293248,
+        "total_tokens": 2048,
+        "oom": false
+      },
+      {
+        "batch_size": 32,
+        "tokens_per_sec": 539.78695432968,
+        "ms_per_token": 59.282647984218784,
+        "peak_vram_gb": 32.158410752,
+        "total_tokens": 4096,
+        "oom": false
+      }
+    ]
+  },
+  "qwen25/rtn-int8": {
+    "wikitext2_ppl": 6.847711072312273,
+    "throughput": [
+      {
+        "batch_size": 1,
+        "tokens_per_sec": 2.2649276970335173,
+        "ms_per_token": 441.5151977300411,
+        "peak_vram_gb": 25.116952064,
+        "total_tokens": 128,
+        "oom": false
+      },
+      {
+        "batch_size": 4,
+        "tokens_per_sec": 8.983483873556397,
+        "ms_per_token": 445.26155512721743,
+        "peak_vram_gb": 25.21252864,
+        "total_tokens": 512,
+        "oom": false
+      },
+      {
+        "batch_size": 16,
+        "tokens_per_sec": 35.06315625778605,
+        "ms_per_token": 456.31944490014575,
+        "peak_vram_gb": 25.59378432,
+        "total_tokens": 2048,
+        "oom": false
+      },
+      {
+        "batch_size": 32,
+        "tokens_per_sec": 68.12670337116406,
+        "ms_per_token": 469.7130261192797,
+        "peak_vram_gb": 26.106669056,
+        "total_tokens": 4096,
+        "oom": false
+      }
+    ]
+  },
+  "qwen25/gptq-int4": {
+    "wikitext2_ppl": 7.039969260348327,
+    "throughput": [
+      {
+        "batch_size": 1,
+        "tokens_per_sec": 1.218352341570008,
+        "ms_per_token": 820.7806279679062,
+        "peak_vram_gb": 22.218900992,
+        "total_tokens": 128,
+        "oom": false
+      },
+      {
+        "batch_size": 4,
+        "tokens_per_sec": 4.853435375384613,
+        "ms_per_token": 824.1584961215267,
+        "peak_vram_gb": 22.313920512,
+        "total_tokens": 512,
+        "oom": false
+      },
+      {
+        "batch_size": 16,
+        "tokens_per_sec": 19.166738749434632,
+        "ms_per_token": 834.7794692235766,
+        "peak_vram_gb": 22.695176192,
+        "total_tokens": 2048,
+        "oom": false
+      },
+      {
+        "batch_size": 32,
+        "tokens_per_sec": 37.741931008353895,
+        "ms_per_token": 847.8633484046441,
+        "peak_vram_gb": 23.205963776,
+        "total_tokens": 4096,
+        "oom": false
+      }
+    ]
+  },
+  "qwen25/awq-int4": {
+    "wikitext2_ppl": 7.126263011104986,
+    "throughput": [
+      {
+        "batch_size": 1,
+        "tokens_per_sec": 1.219374156973648,
+        "ms_per_token": 820.0928273581667,
+        "peak_vram_gb": 22.217934336,
+        "total_tokens": 128,
+        "oom": false
+      },
+      {
+        "batch_size": 4,
+        "tokens_per_sec": 4.859606456627697,
+        "ms_per_token": 823.1119198026136,
+        "peak_vram_gb": 22.313510912,
+        "total_tokens": 512,
+        "oom": false
+      },
+      {
+        "batch_size": 16,
+        "tokens_per_sec": 19.180178217477692,
+        "ms_per_token": 834.1945428546751,
+        "peak_vram_gb": 22.693865472,
+        "total_tokens": 2048,
+        "oom": false
+      },
+      {
+        "batch_size": 32,
+        "tokens_per_sec": 37.76154642917458,
+        "ms_per_token": 847.4229216226377,
+        "peak_vram_gb": 23.204653056,
+        "total_tokens": 4096,
+        "oom": false
+      }
+    ]
+  },
+  "olmo3/fp16": {
+    "wikitext2_ppl": 9.921267882913536,
+    "throughput": [
+      {
+        "batch_size": 1,
+        "tokens_per_sec": 25.0623577547875,
+        "ms_per_token": 39.90047583647538,
+        "peak_vram_gb": 29.409296896,
+        "total_tokens": 128,
+        "oom": false
+      },
+      {
+        "batch_size": 4,
+        "tokens_per_sec": 107.95832232047357,
+        "ms_per_token": 37.051335311844014,
+        "peak_vram_gb": 30.031803904,
+        "total_tokens": 512,
+        "oom": false
+      },
+      {
+        "batch_size": 16,
+        "tokens_per_sec": 288.6526558828778,
+        "ms_per_token": 55.42994209099561,
+        "peak_vram_gb": 32.522697728,
+        "total_tokens": 2048,
+        "oom": false
+      },
+      {
+        "batch_size": 32,
+        "tokens_per_sec": 407.49818860529905,
+        "ms_per_token": 78.52795642975252,
+        "peak_vram_gb": 35.848429056,
+        "total_tokens": 4096,
+        "oom": false
+      }
+    ]
+  },
+  "olmo3/rtn-int8": {
+    "wikitext2_ppl": 9.923261330796329,
+    "throughput": [
+      {
+        "batch_size": 1,
+        "tokens_per_sec": 2.264364538410841,
+        "ms_per_token": 441.62500473612454,
+        "peak_vram_gb": 23.672215552,
+        "total_tokens": 128,
+        "oom": false
+      },
+      {
+        "batch_size": 4,
+        "tokens_per_sec": 8.982509347121862,
+        "ms_per_token": 445.30986224708613,
+        "peak_vram_gb": 24.276127232,
+        "total_tokens": 512,
+        "oom": false
+      },
+      {
+        "batch_size": 16,
+        "tokens_per_sec": 34.51981792657163,
+        "ms_per_token": 463.5018653352745,
+        "peak_vram_gb": 26.690924544,
+        "total_tokens": 2048,
+        "oom": false
+      },
+      {
+        "batch_size": 32,
+        "tokens_per_sec": 65.77389934131918,
+        "ms_per_token": 486.51517274265643,
+        "peak_vram_gb": 29.911178752,
+        "total_tokens": 4096,
+        "oom": false
+      }
+    ]
+  },
+  "olmo3/gptq-int4": {
+    "wikitext2_ppl": 10.208094181624029,
+    "throughput": [
+      {
+        "batch_size": 1,
+        "tokens_per_sec": 1.229708100312665,
+        "ms_per_token": 813.201116383425,
+        "peak_vram_gb": 20.850612224,
+        "total_tokens": 128,
+        "oom": false
+      },
+      {
+        "batch_size": 4,
+        "tokens_per_sec": 4.891137443222168,
+        "ms_per_token": 817.8056835313328,
+        "peak_vram_gb": 21.45539328,
+        "total_tokens": 512,
+        "oom": false
+      },
+      {
+        "batch_size": 16,
+        "tokens_per_sec": 19.163718544008187,
+        "ms_per_token": 834.9110306153307,
+        "peak_vram_gb": 23.870331904,
+        "total_tokens": 2048,
+        "oom": false
+      },
+      {
+        "batch_size": 32,
+        "tokens_per_sec": 37.31216478935659,
+        "ms_per_token": 857.6291453646263,
+        "peak_vram_gb": 27.089853952,
+        "total_tokens": 4096,
+        "oom": false
+      }
+    ]
+  },
+  "olmo3/awq-int4": {
+    "wikitext2_ppl": 10.362578053672136,
+    "throughput": [
+      {
+        "batch_size": 1,
+        "tokens_per_sec": 1.2296218350198391,
+        "ms_per_token": 813.2581672834931,
+        "peak_vram_gb": 20.862162944,
+        "total_tokens": 128,
+        "oom": false
+      },
+      {
+        "batch_size": 4,
+        "tokens_per_sec": 4.891165905524014,
+        "ms_per_token": 817.8009246184956,
+        "peak_vram_gb": 21.466173952,
+        "total_tokens": 512,
+        "oom": false
+      },
+      {
+        "batch_size": 16,
+        "tokens_per_sec": 19.16178757640623,
+        "ms_per_token": 834.9951660929946,
+        "peak_vram_gb": 23.880413184,
+        "total_tokens": 2048,
+        "oom": false
+      },
+      {
+        "batch_size": 32,
+        "tokens_per_sec": 37.287085905751205,
+        "ms_per_token": 858.2059772888897,
+        "peak_vram_gb": 27.100976128,
+        "total_tokens": 4096,
+        "oom": false
+      }
+    ]
+  }
+}

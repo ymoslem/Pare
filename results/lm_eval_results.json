@@ -1,0 +1,98 @@
+{
+  "llama31/fp16": {
+    "lambada_openai": 75.08,
+    "piqa": 81.23,
+    "winogrande": 74.51,
+    "openbookqa": 45.4,
+    "rte": 71.12,
+    "copa": 92.0
+  },
+  "llama31/rtn-int8": {
+    "lambada_openai": 75.33,
+    "piqa": 81.12,
+    "winogrande": 74.11,
+    "openbookqa": 45.6,
+    "rte": 71.84,
+    "copa": 90.0
+  },
+  "llama31/gptq-int4": {
+    "lambada_openai": 73.9,
+    "piqa": 80.52,
+    "winogrande": 73.01,
+    "openbookqa": 44.6,
+    "rte": 67.87,
+    "copa": 90.0
+  },
+  "llama31/awq-int4": {
+    "lambada_openai": 74.81,
+    "piqa": 79.49,
+    "winogrande": 73.48,
+    "openbookqa": 43.2,
+    "rte": 63.18,
+    "copa": 90.0
+  },
+  "qwen25/fp16": {
+    "lambada_openai": 71.98,
+    "piqa": 79.82,
+    "winogrande": 73.01,
+    "openbookqa": 47.4,
+    "rte": 81.59,
+    "copa": 91.0
+  },
+  "qwen25/rtn-int8": {
+    "lambada_openai": 72.33,
+    "piqa": 79.98,
+    "winogrande": 73.16,
+    "openbookqa": 47.2,
+    "rte": 80.87,
+    "copa": 91.0
+  },
+  "qwen25/gptq-int4": {
+    "lambada_openai": 71.45,
+    "piqa": 79.82,
+    "winogrande": 70.64,
+    "openbookqa": 45.4,
+    "rte": 83.03,
+    "copa": 90.0
+  },
+  "qwen25/awq-int4": {
+    "lambada_openai": 71.51,
+    "piqa": 79.43,
+    "winogrande": 72.22,
+    "openbookqa": 46.4,
+    "rte": 83.03,
+    "copa": 91.0
+  },
+  "olmo3/fp16": {
+    "lambada_openai": 68.0,
+    "piqa": 78.94,
+    "winogrande": 69.46,
+    "openbookqa": 41.8,
+    "rte": 72.2,
+    "copa": 87.0
+  },
+  "olmo3/rtn-int8": {
+    "lambada_openai": 68.0,
+    "piqa": 78.62,
+    "winogrande": 69.61,
+    "openbookqa": 42.0,
+    "rte": 72.2,
+    "copa": 87.0
+  },
+  "olmo3/gptq-int4": {
+    "lambada_openai": 66.83,
+    "piqa": 77.91,
+    "winogrande": 68.51,
+    "openbookqa": 41.8,
+    "rte": 75.45,
+    "copa": 86.0
+  },
+  "olmo3/awq-int4": {
+    "lambada_openai": 66.83,
+    "piqa": 77.8,
+    "winogrande": 70.09,
+    "openbookqa": 41.8,
+    "rte": 72.92,
+    "copa": 88.0
+  }
+}

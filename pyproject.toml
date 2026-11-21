@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "pare-quant"
 version = "0.1.3"
-description = "A unified, architecture-agnostic library for post-training quantization of large language models"
+description = "Post-training quantization of large language models with RTN, GPTQ, AWQ and SmoothQuant"
 dynamic = ["readme"]
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }

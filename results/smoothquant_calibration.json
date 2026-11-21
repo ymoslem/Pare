@@ -1,0 +1,6 @@
+{
+  "fp16": 6.627204895019531,
+  "smoothquant_absmax": 6.717042446136475,
+  "smoothquant_percentile": 6.739233016967773,
+  "smoothquant_mse": 6.763849258422852
+}

@@ -1,0 +1,20 @@
+{
+  "experiment": "E3 vLLM serving benchmark (vllm bench serve)",
+  "model": "Qwen2.5-7B",
+  "hardware": "NVIDIA A40",
+  "engine": "vLLM 0.24.0 (Marlin AWQ), torch 2.11+cu130",
+  "workload": "dataset=random, num_prompts=200, input_len=512, output_len=128, max_concurrency=32",
+  "note": "Pare-AWQ served via the Pare->AWQ export. INT4 lowers decode latency (TPOT) and raises throughput but increases prefill (TTFT); ecosystem-standard Marlin behaviour, not Pare-specific.",
+  "results": {
+    "fp16": {
+      "mean_ttft_ms": 917.93, "median_ttft_ms": 812.72,
+      "mean_tpot_ms": 39.73, "median_tpot_ms": 39.82,
+      "output_throughput_tok_s": 637.45, "request_throughput_req_s": 4.98
+    },
+    "pare_awq_int4": {
+      "mean_ttft_ms": 1249.74, "median_ttft_ms": 1184.72,
+      "mean_tpot_ms": 21.14, "median_tpot_ms": 21.04,
+      "output_throughput_tok_s": 984.78, "request_throughput_req_s": 7.69
+    }
+  }
+}
