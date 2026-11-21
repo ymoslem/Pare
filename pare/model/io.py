@@ -73,6 +73,7 @@ def save_quantized(model: nn.Module, path: str | Path) -> None:
         if isinstance(module, QuantizedLinear):
             quantized_layers[name] = {
                 "bits":             module.config.bits,
+                "dtype":            module.config.effective_dtype.name,
                 "scheme":           module.config.scheme,
                 "granularity":      module.config.granularity,
                 "group_size":       module.config.group_size,
@@ -146,6 +147,7 @@ def load_quantized(model: nn.Module, path: str | Path) -> nn.Module:
     from safetensors.torch import load_file
 
     from pare.config import QuantConfig
+    from pare.core.dtype import QuantDtype
     from pare.layers.linear import QuantizedLinear
 
     path = Path(path)
@@ -160,8 +162,13 @@ def load_quantized(model: nn.Module, path: str | Path) -> nn.Module:
 
     # ── 3. Reconstruct QuantizedLinear layers ──────────────────────────
     for name, lm in ql_meta.items():
+        # Older checkpoints do not record the dtype, so it is inferred from
+        # ``bits``. That is only right for integer weights: NF4 and FP8
+        # layers saved without the field load as INT4 and INT8.
+        dtype = QuantDtype[lm["dtype"]] if "dtype" in lm else None
         config = QuantConfig(
             bits=lm["bits"],
+            dtype=dtype,
             scheme=lm["scheme"],
             granularity=lm["granularity"],
             group_size=lm["group_size"],

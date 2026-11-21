@@ -187,11 +187,13 @@ class QuantizedLinear(nn.Module):
         instance.quantize_inputs = quantize_inputs
         instance.use_kernel = False
 
+        # FP8 weights are stored in their float8 dtype; casting them to int8
+        # would truncate the values. Integer weights are stored as int8.
+        if q_weight is not None and not q_weight.is_floating_point():
+            q_weight = q_weight.to(torch.int8)
+
         instance.register_buffer("packed_weight", packed_weight)
-        instance.register_buffer(
-            "q_weight",
-            q_weight.to(torch.int8) if q_weight is not None else None,
-        )
+        instance.register_buffer("q_weight", q_weight)
         instance.register_buffer("scale", scale.float())
         instance.register_buffer("zero", zero.float())
 

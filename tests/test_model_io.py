@@ -15,7 +15,7 @@ import tempfile
 import pytest
 import torch
 
-from pare import QuantConfig, load_quantized, quantize, save_quantized
+from pare import QuantConfig, QuantDtype, load_quantized, quantize, save_quantized
 from pare.eval.perplexity import evaluate_perplexity
 from pare.layers.linear import QuantizedLinear
 
@@ -218,6 +218,8 @@ class _TinyMLP(torch.nn.Module):
 _LOCAL_CONFIGS = {
     "int4": lambda: QuantConfig(bits=4, scheme="rtn"),
     "int8": lambda: QuantConfig(bits=8, scheme="rtn", granularity="per_channel"),
+    "nf4": lambda: QuantConfig(bits=4, dtype=QuantDtype.NF4, scheme="rtn"),
+    "fp8": lambda: QuantConfig(bits=8, dtype=QuantDtype.FP8_E4M3, scheme="rtn"),
 }
 
 
@@ -225,6 +227,9 @@ class TestLocalRoundTrip:
     @pytest.mark.parametrize("key", list(_LOCAL_CONFIGS))
     def test_reloaded_model_matches_saved_model(self, key, tmp_path):
         """quantize → save → load must give the same outputs, for every dtype."""
+        if key == "fp8" and not hasattr(torch, "float8_e4m3fn"):
+            pytest.skip("torch.float8_e4m3fn not available")
+
         torch.manual_seed(0)
         model = _TinyMLP()
         x = torch.randn(4, 256)
@@ -239,3 +244,24 @@ class TestLocalRoundTrip:
         with torch.no_grad():
             y_loaded = loaded(x)
         assert torch.equal(y_loaded, y_saved)
+
+    def test_checkpoint_without_dtype_field_loads_as_integer(self, tmp_path):
+        """Checkpoints written before the dtype was recorded still load."""
+        import json
+
+        torch.manual_seed(0)
+        model = _TinyMLP()
+        quantize(model, QuantConfig(bits=4, scheme="rtn"))
+        save_quantized(model, tmp_path / "old")
+
+        cfg_path = tmp_path / "old" / "pare_config.json"
+        meta = json.loads(cfg_path.read_text())
+        for layer_meta in meta["quantized_layers"].values():
+            del layer_meta["dtype"]
+        cfg_path.write_text(json.dumps(meta))
+
+        loaded = load_quantized(_TinyMLP(), tmp_path / "old")
+        assert loaded.fc1.config.effective_dtype == QuantDtype.INT4
+        x = torch.randn(4, 256)
+        with torch.no_grad():
+            assert torch.equal(loaded(x), model(x))
