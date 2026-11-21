@@ -25,6 +25,9 @@ Results format (results/eval_results.json):
       "<model>/<method>": {
         "wikitext2_ppl": float,
         "throughput": [{"batch_size": int, "tokens_per_sec": float, ...}, ...]
+      },
+      "_provenance": {
+        "<model>/<method>": {"pare_version": str, "git_commit": str, ...}
       }
     }
 """
@@ -46,6 +49,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from pare import QuantConfig, quantize
 from pare.calibration.data import load_wikitext2_calibration
 from pare.eval.perplexity import evaluate_perplexity
+from provenance import record
 from pare.eval.throughput import benchmark_throughput
 
 DEVICE    = "cuda"
@@ -175,6 +179,7 @@ def main():
             except Exception as e:
                 print(f"[bench] {tag} FAILED: {e}", flush=True)
                 results[tag] = {"error": str(e)}
+            results.setdefault("_provenance", {})[tag] = record()
 
             with open(results_path, "w") as f:
                 json.dump(results, f, indent=2)
@@ -191,6 +196,8 @@ def _print_summary(results: dict) -> None:
     print(f"{'Model/Method':<30}  {'WikiText-2 PPL':>15}  {'BS=1 tok/s':>12}")
     print("-"*70)
     for tag, r in sorted(results.items()):
+        if tag.startswith("_"):
+            continue
         ppl = f"{r['wikitext2_ppl']:.2f}" if "wikitext2_ppl" in r else "ERR"
         thr = r.get("throughput", [{}])
         bs1 = next((t for t in thr if t.get("batch_size") == 1), {})

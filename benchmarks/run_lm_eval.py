@@ -24,7 +24,8 @@ Tasks evaluated:
     rte               textual entailment (0-shot)
     copa              causal reasoning (0-shot)
 
-Results are appended to results/lm_eval_results.json.
+Results are appended to results/lm_eval_results.json, with the Pare version,
+git commit and library versions of each run under the "_provenance" key.
 """
 
 from __future__ import annotations
@@ -42,6 +43,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from pare import QuantConfig, quantize
 from pare.calibration.data import load_wikitext2_calibration
+from provenance import record
 
 RESULTS_DIR = Path(__file__).parent.parent / "results"
 
@@ -157,6 +159,7 @@ def main():
                     task_scores[task_name] = round(acc * 100, 2) if acc is not None else None
 
             results[tag] = task_scores
+            results.setdefault("_provenance", {})[tag] = record("lm_eval")
             print(f"[lm_eval] {tag}: {task_scores}", flush=True)
 
             with open(results_path, "w") as f:
@@ -182,6 +185,8 @@ def _print_summary(results: dict) -> None:
     print(f"{'Model/Method':<30}  {'ZeroShot Avg (6)':>16}")
     print("-"*55)
     for tag, scores in sorted(results.items()):
+        if tag.startswith("_"):
+            continue
         if "error" in scores:
             print(f"{tag:<30}  ERROR")
             continue
