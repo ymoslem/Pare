@@ -28,6 +28,8 @@ Usage::
 
 from __future__ import annotations
 
+from typing import Any
+
 import torch
 import torch.nn as nn
 
@@ -56,14 +58,23 @@ class AwqGemmLinear(nn.Module):
     replaces this module at load time, so no ``forward`` is defined here.
     """
 
-    def __init__(self, in_features: int, out_features: int, group_size: int, has_bias: bool):
+    qweight: torch.Tensor
+    qzeros: torch.Tensor
+    scales: torch.Tensor
+    bias: torch.Tensor | None
+
+    def __init__(
+        self, in_features: int, out_features: int, group_size: int, has_bias: bool
+    ) -> None:
         super().__init__()
         self.in_features = in_features
         self.out_features = out_features
         self.w_bit = 4
         self.group_size = group_size
         n_groups = in_features // group_size
-        self.register_buffer("qweight", torch.zeros(in_features, out_features // 8, dtype=torch.int32))
+        self.register_buffer(
+            "qweight", torch.zeros(in_features, out_features // 8, dtype=torch.int32)
+        )
         self.register_buffer("qzeros", torch.zeros(n_groups, out_features // 8, dtype=torch.int32))
         self.register_buffer("scales", torch.zeros(n_groups, out_features, dtype=torch.float16))
         if has_bias:
@@ -81,6 +92,7 @@ def _to_awq_linear(ql: QuantizedLinear, group_size: int) -> AwqGemmLinear:
             f"({group_size}) and out_features ({out_f}) divisible by 8."
         )
 
+    assert ql.packed_weight is not None
     q = unpack_int4(ql.packed_weight).reshape(out_f, in_f).to(torch.int32).cpu()  # [out, in]
     scale = ql.scale.reshape(out_f, -1).float().cpu()                 # [out, n_groups]
     zero = ql.zero.reshape(out_f, -1).round().to(torch.int32).cpu()   # [out, n_groups]
@@ -94,7 +106,7 @@ def _to_awq_linear(ql: QuantizedLinear, group_size: int) -> AwqGemmLinear:
     return m
 
 
-def export_awq(model: nn.Module, save_dir: str, tokenizer=None) -> str:
+def export_awq(model: nn.Module, save_dir: str, tokenizer: Any | None = None) -> str:
     """Repack a Pare 4-bit model in place into an AWQ checkpoint and save it.
 
     Args:
@@ -123,14 +135,15 @@ def export_awq(model: nn.Module, save_dir: str, tokenizer=None) -> str:
             parent = model.get_submodule(name.rsplit(".", 1)[0]) if "." in name else model
             setattr(parent, name.rsplit(".", 1)[-1], awq)
 
-    model.config.quantization_config = {
+    hf_model: Any = model
+    hf_model.config.quantization_config = {
         "quant_method": "awq",
         "bits": 4,
         "group_size": group_size,
         "version": "gemm",
         "zero_point": True,
     }
-    model.save_pretrained(save_dir)
+    hf_model.save_pretrained(save_dir)
     if tokenizer is not None:
         tokenizer.save_pretrained(save_dir)
     return save_dir

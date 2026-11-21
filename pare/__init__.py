@@ -1,6 +1,8 @@
-"""Pare — a unified, architecture-agnostic library for post-training quantization of large language models."""
+"""Pare: post-training quantization of large language models."""
 
 from __future__ import annotations
+
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -22,8 +24,8 @@ __all__ = [
 def quantize(
     model: nn.Module,
     config: QuantConfig,
-    calibration_data: "list | None" = None,
-    device: "str" = "cpu",
+    calibration_data: list[torch.Tensor] | None = None,
+    device: str = "cpu",
 ) -> nn.Module:
     """Quantize a model in-place using the scheme specified in ``config``.
 
@@ -85,29 +87,28 @@ def quantize(
     scheme = config.scheme
     if scheme == "rtn":
         from pare.schemes.rtn import RTNQuantizer
-        quantizer = RTNQuantizer(config, layer_bits_override=layer_bits_override)
-        return quantizer.quantize_model(model)
+        return RTNQuantizer(config, layer_bits_override=layer_bits_override).quantize_model(model)
 
     elif scheme == "gptq":
         from pare.schemes.gptq import GPTQQuantizer
-        quantizer = GPTQQuantizer(config, layer_bits_override=layer_bits_override)
-        return quantizer.quantize_model(model, calibration_data=calibration_data, device=device)
+        gptq = GPTQQuantizer(config, layer_bits_override=layer_bits_override)
+        return gptq.quantize_model(model, calibration_data=calibration_data, device=device)
 
     elif scheme == "awq":
         from pare.schemes.awq import AWQQuantizer
-        quantizer = AWQQuantizer(config, layer_bits_override=layer_bits_override)
-        return quantizer.quantize_model(model, calibration_data=calibration_data, device=device)
+        awq = AWQQuantizer(config, layer_bits_override=layer_bits_override)
+        return awq.quantize_model(model, calibration_data=calibration_data, device=device)
 
     elif scheme == "smoothquant":
         from pare.schemes.smoothquant import SmoothQuantQuantizer
-        quantizer = SmoothQuantQuantizer(config, layer_bits_override=layer_bits_override)
-        return quantizer.quantize_model(model, calibration_data=calibration_data, device=device)
+        sq = SmoothQuantQuantizer(config, layer_bits_override=layer_bits_override)
+        return sq.quantize_model(model, calibration_data=calibration_data, device=device)
 
     else:
         raise ValueError(f"Unknown scheme: {scheme!r}")
 
 
-def _as_batches(calibration_data: list) -> list[torch.Tensor]:
+def _as_batches(calibration_data: list[Any]) -> list[torch.Tensor]:
     """Give every 1-D calibration sequence a batch dimension.
 
     The calibration code runs each tensor through the model as one batch, so

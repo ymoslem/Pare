@@ -51,7 +51,7 @@ except ImportError:
 
 if _TRITON_AVAILABLE:
 
-    @triton.autotune(
+    @triton.autotune(  # type: ignore[untyped-decorator]
         configs=[
             triton.Config({"BLOCK_M": 64,  "BLOCK_N": 64},  num_stages=4, num_warps=4),
             triton.Config({"BLOCK_M": 128, "BLOCK_N": 64},  num_stages=4, num_warps=4),
@@ -62,8 +62,8 @@ if _TRITON_AVAILABLE:
         ],
         key=["M", "N", "K"],
     )
-    @triton.jit
-    def _w4a16_kernel(
+    @triton.jit  # type: ignore[untyped-decorator]
+    def _w4a16_kernel(  # type: ignore[no-untyped-def]
         # ---- pointers ----
         x_ptr,           # [M, K]        fp16 activations
         w_ptr,           # [N, K//2]     uint8 kernel-layout packed weights
@@ -181,12 +181,12 @@ if _TRITON_AVAILABLE:
 # ---------------------------------------------------------------------------
 
 def matmul_w4a16(
-    x: "torch.Tensor",
-    packed_weight: "torch.Tensor",
-    scales: "torch.Tensor",
-    zeros: "torch.Tensor",
+    x: torch.Tensor,
+    packed_weight: torch.Tensor,
+    scales: torch.Tensor,
+    zeros: torch.Tensor,
     group_size: int,
-) -> "torch.Tensor":
+) -> torch.Tensor:
     """Fused INT4 dequant + matmul via Triton.
 
     Args:
@@ -216,7 +216,7 @@ def matmul_w4a16(
     N, K_half = packed_weight.shape
     assert K == K_half * 2, f"packed_weight has {K_half} columns, expected K//2={K//2}"
 
-    def _to_2d(t: "torch.Tensor") -> "torch.Tensor":
+    def _to_2d(t: torch.Tensor) -> torch.Tensor:
         t = t.float()
         if t.dim() == 1:
             return t.unsqueeze(1)
@@ -229,7 +229,8 @@ def matmul_w4a16(
 
     y = torch.empty(M, N, device=x.device, dtype=torch.float16)
 
-    grid = lambda meta: (triton.cdiv(M, meta["BLOCK_M"]), triton.cdiv(N, meta["BLOCK_N"]))
+    def grid(meta: dict[str, int]) -> tuple[int, int]:
+        return (triton.cdiv(M, meta["BLOCK_M"]), triton.cdiv(N, meta["BLOCK_N"]))
 
     _w4a16_kernel[grid](
         x, packed_weight, scales_2d, zeros_2d, y,

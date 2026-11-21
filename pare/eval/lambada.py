@@ -20,13 +20,15 @@ Usage::
 
 from __future__ import annotations
 
+from typing import Any
+
 import torch
 import torch.nn as nn
 
 
 def evaluate_lambada(
     model: nn.Module,
-    tokenizer,
+    tokenizer: Any,
     n_samples: int | None = None,
     device: str | torch.device = "cpu",
 ) -> float:

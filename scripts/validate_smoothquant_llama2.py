@@ -16,9 +16,9 @@ Requires:
 import os
 import sys
 import time
-import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
 
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from pare import QuantConfig, quantize
 from pare.calibration.data import load_wikitext2_calibration
@@ -55,7 +55,7 @@ def main():
         smooth_alpha=0.5,
     )
 
-    print(f"\n[validate] Running SmoothQuant (α=0.5, INT8 per-channel) ...", flush=True)
+    print("\n[validate] Running SmoothQuant (α=0.5, INT8 per-channel) ...", flush=True)
     t0 = time.time()
     quantize(model, config, calibration_data=calib_data, device=DEVICE)
     elapsed = time.time() - t0

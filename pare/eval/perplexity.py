@@ -15,6 +15,7 @@ Usage::
 from __future__ import annotations
 
 import math
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -23,7 +24,7 @@ from torch import Tensor
 
 def evaluate_perplexity(
     model: nn.Module,
-    tokenizer,
+    tokenizer: Any,
     dataset: str = "wikitext2",
     seq_len: int | None = None,
     n_samples: int | None = None,
@@ -97,7 +98,7 @@ def _infer_seq_len(model: nn.Module, default: int = 2048) -> int:
     )
     if not max_len:
         return default
-    return min(default, max_len)
+    return int(min(default, max_len))
 
 
 # Cache of tokenized corpora, keyed by (tokenizer identity, dataset name).
@@ -107,7 +108,7 @@ def _infer_seq_len(model: nn.Module, default: int = 2048) -> int:
 _ENCODING_CACHE: dict[tuple[str, str], Tensor] = {}
 
 
-def _load_and_encode(tokenizer, dataset: str) -> Tensor:
+def _load_and_encode(tokenizer: Any, dataset: str) -> Tensor:
     """Download and tokenize the test split, return as a flat token tensor."""
     cache_key = (getattr(tokenizer, "name_or_path", repr(tokenizer)), dataset)
     if cache_key in _ENCODING_CACHE:
@@ -130,6 +131,6 @@ def _load_and_encode(tokenizer, dataset: str) -> Tensor:
     else:
         raise ValueError(f"Unknown dataset: {dataset!r}. Use 'wikitext2' or 'c4'.")
 
-    tokens = tokenizer.encode(text, return_tensors="pt")
+    tokens: Tensor = tokenizer.encode(text, return_tensors="pt")
     _ENCODING_CACHE[cache_key] = tokens
     return tokens

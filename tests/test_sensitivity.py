@@ -1,8 +1,8 @@
 """Tests for mixed-precision sensitivity scoring."""
 
+import pytest
 import torch
 import torch.nn as nn
-import pytest
 
 from pare.config import QuantConfig
 from pare.core.dtype import QuantDtype
@@ -170,7 +170,7 @@ class TestForwardErrorsSurface:
 class TestMixedPrecisionQuantize:
     def test_sensitive_layers_get_higher_bits(self):
         """End-to-end: layers above threshold get sensitive_bits, others get bits."""
-        from pare import quantize, QuantConfig
+        from pare import QuantConfig, quantize
         from pare.layers.linear import QuantizedLinear
 
         torch.manual_seed(0)
@@ -209,7 +209,7 @@ class TestMixedPrecisionQuantize:
 
     def test_no_sensitivity_all_same_bits(self):
         """Without sensitive_bits, all layers use the same bit-width."""
-        from pare import quantize, QuantConfig
+        from pare import QuantConfig, quantize
         from pare.layers.linear import QuantizedLinear
 
         torch.manual_seed(0)

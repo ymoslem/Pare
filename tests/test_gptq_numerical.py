@@ -13,7 +13,6 @@ Tests:
   - act_order permutation is undone: Q_int is in original column order
 """
 
-import numpy as np
 import pytest
 import torch
 
@@ -226,7 +225,8 @@ class TestGPTQOneLayer:
         gptq_out_err = ((W - W_gptq) @ X.T).pow(2).mean().item()
 
         assert gptq_out_err <= rtn_out_err * 1.05, (
-            f"GPTQ output error ({gptq_out_err:.6f}) should be ≤ RTN output error ({rtn_out_err:.6f})"
+            f"GPTQ output error ({gptq_out_err:.6f}) should be at most "
+            f"RTN output error ({rtn_out_err:.6f})"
         )
 
     def test_act_order_undone(self):

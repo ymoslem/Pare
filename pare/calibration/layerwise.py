@@ -19,21 +19,37 @@ Qwen2, Phi-3, Gemma, ...).
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
+
 import torch
 import torch.nn as nn
 from torch import Tensor
 
 from pare.calibration.hessian import HessianAccumulator
 
+if TYPE_CHECKING:
+    from pare.schemes.gptq import GPTQQuantizer
+
+
+def decoder_layers(model: nn.Module) -> nn.ModuleList:
+    """Return ``model.model.layers``, the stack of transformer blocks.
+
+    Raises TypeError if the model has no such stack, which is how
+    ``is_supported`` tells layerwise-capable architectures apart.
+    """
+    layers = getattr(getattr(model, "model", None), "layers", None)
+    if not isinstance(layers, nn.ModuleList):
+        raise TypeError("model has no model.model.layers ModuleList")
+    return layers
+
 
 def is_supported(model: nn.Module) -> bool:
     """Return True if this model has the block structure we support."""
-    return (
-        hasattr(model, "model")
-        and hasattr(model.model, "layers")
-        and len(model.model.layers) > 0
-        and isinstance(model.model.layers[0], nn.Module)
-    )
+    try:
+        return len(decoder_layers(model)) > 0
+    except TypeError:
+        return False
 
 
 class LayerwiseGPTQ:
@@ -43,7 +59,7 @@ class LayerwiseGPTQ:
         self,
         model: nn.Module,
         calibration_data: list[Tensor],
-        quantizer,
+        quantizer: GPTQQuantizer,
         device: str | torch.device,
     ) -> nn.Module:
         """Quantize model in-place using layerwise Hessian collection.
@@ -59,7 +75,7 @@ class LayerwiseGPTQ:
             The same model, quantized in-place.
         """
         device = torch.device(device)
-        layers = model.model.layers
+        layers = decoder_layers(model)
         seq_len = calibration_data[0].shape[1]
 
         # ── 1. Capture embedding outputs (inputs to layer 0) ───────────────
@@ -139,7 +155,7 @@ class _Catcher(nn.Module):
         self._layer = layer
         self._store = store
 
-    def forward(self, x: Tensor, **_kw) -> Tensor:
+    def forward(self, x: Tensor, **_kw: Any) -> Tensor:
         self._store.append(x.cpu())
         raise StopIteration
 
@@ -204,25 +220,24 @@ def _call_layer(
     - New (>= 4.46): requires position_embeddings=(cos, sin) kwarg; returns Tensor.
     - Old (< 4.46): uses position_ids internally; returns (hidden_states, ...) tuple.
     """
-    kwargs: dict = {"use_cache": False}
+    kwargs: dict[str, Any] = {"use_cache": False}
     if pe is not None:
         kwargs["position_embeddings"] = (pe[0].to(device), pe[1].to(device))
 
-    out = layer(x, **kwargs)
+    out: Any = layer(x, **kwargs)
 
     # Normalise output: newer transformers returns a plain Tensor,
     # older versions return a tuple (hidden_states, ...).
-    if isinstance(out, tuple):
-        out = out[0]
-    return out
+    hidden: Tensor = out[0] if isinstance(out, tuple) else out
+    return hidden
 
 
 def _find_layers_path(model: nn.Module) -> str:
     """Return the dotted name of model.model.layers in named_modules()."""
-    target = model.model.layers
+    target = decoder_layers(model)
     for name, mod in model.named_modules():
         if mod is target:
-            return name
+            return str(name)
     raise RuntimeError("Could not find model.model.layers in named_modules()")
 
 
@@ -235,7 +250,7 @@ def _set_submodule(parent: nn.Module, rel_path: str, new_mod: nn.Module) -> None
     setattr(m, parts[-1], new_mod)
 
 
-def _make_hook(acc: HessianAccumulator):
-    def hook(module: nn.Module, inputs: tuple, output: Tensor) -> None:
+def _make_hook(acc: HessianAccumulator) -> Callable[[nn.Module, tuple[Any, ...], Tensor], None]:
+    def hook(module: nn.Module, inputs: tuple[Any, ...], output: Tensor) -> None:
         acc.accumulate(inputs[0].detach())
     return hook

@@ -12,7 +12,6 @@ from pare.core.functional import (
     quantize_fp8,
 )
 
-
 # Skip entire module if float8 is not available in this PyTorch build.
 fp8_available = hasattr(torch, "float8_e4m3fn")
 pytestmark = pytest.mark.skipif(not fp8_available, reason="torch.float8_e4m3fn not available")
@@ -141,6 +140,7 @@ class TestFP8Linear:
     def test_from_linear_fp8_e4m3(self):
         """QuantizedLinear.from_linear with FP8 E4M3 roundtrips correctly."""
         import torch.nn as nn
+
         from pare.layers.linear import QuantizedLinear
 
         torch.manual_seed(0)
@@ -159,6 +159,7 @@ class TestFP8Linear:
     def test_fp8_reconstruction_mse(self):
         """FP8 reconstruction error should be low on random normal weights."""
         import torch.nn as nn
+
         from pare.layers.linear import QuantizedLinear
 
         torch.manual_seed(1)
@@ -173,6 +174,7 @@ class TestFP8Linear:
     def test_fp8_forward_runs(self):
         """Forward pass through an FP8 QuantizedLinear should not crash."""
         import torch.nn as nn
+
         from pare.layers.linear import QuantizedLinear
 
         torch.manual_seed(2)

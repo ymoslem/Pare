@@ -79,6 +79,7 @@ addopts = "-v --tb=short"
 markers = [
     "smoke: end-to-end tests on GPT-2 + WikiText-2 (requires internet, CPU-only, opt-in with --smoke)",
     "gpu: tests that require a CUDA-capable GPU",
+    "slow: tests that take more than a few seconds on a GPU",
 ]
 
 [tool.hatch.build.targets.wheel]

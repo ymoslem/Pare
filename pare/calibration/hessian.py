@@ -65,7 +65,9 @@ class HessianAccumulator:
         Raises RuntimeError if no samples have been accumulated.
         """
         if self.H is None or self.n_tokens == 0:
-            raise RuntimeError("HessianAccumulator has no samples — did you forget to call accumulate()?")
+            raise RuntimeError(
+                "HessianAccumulator has no samples; call accumulate() before finalize()"
+            )
         return self.H * (2.0 / self.n_tokens)
 
     def reset(self) -> None:

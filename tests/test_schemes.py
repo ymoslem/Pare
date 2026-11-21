@@ -10,7 +10,6 @@ from pare.schemes.awq import _apply_awq_groups
 from pare.schemes.rtn import RTNQuantizer
 from pare.schemes.smoothquant import _apply_smooth_groups
 
-
 # ---------------------------------------------------------------------------
 # Minimal fake transformer blocks for AWQ structural tests
 # ---------------------------------------------------------------------------
@@ -206,7 +205,6 @@ class TestEndToEnd:
 
     def test_quantized_model_smaller_memory_int4(self):
         model = TinyModel()
-        fp16_params = sum(p.numel() for p in model.parameters())
 
         config = QuantConfig(bits=4, scheme="rtn", group_size=64)
         quantize(model, config)

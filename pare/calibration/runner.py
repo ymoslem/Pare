@@ -13,11 +13,13 @@ Usage::
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 import torch
 import torch.nn as nn
 from torch import Tensor
+from torch.utils.hooks import RemovableHandle
 
 from pare.calibration.hessian import HessianAccumulator
 
@@ -34,7 +36,7 @@ class CalibrationRunner:
                    of layers that will later be quantized.
     """
 
-    def __init__(self, quantizer: "BaseQuantizer") -> None:
+    def __init__(self, quantizer: BaseQuantizer) -> None:
         self.quantizer = quantizer
 
     def collect(
@@ -63,7 +65,7 @@ class CalibrationRunner:
         model.eval()
 
         accumulators: dict[str, HessianAccumulator] = {}
-        hooks: list[torch.utils.hooks.RemovableHook] = []
+        hooks: list[RemovableHandle] = []
 
         # Register a hook on every layer we intend to quantize.
         for name, module in model.named_modules():
@@ -87,9 +89,9 @@ class CalibrationRunner:
         return {name: acc.finalize() for name, acc in accumulators.items()}
 
 
-def _make_hook(acc: HessianAccumulator):
+def _make_hook(acc: HessianAccumulator) -> Callable[[nn.Module, tuple[Any, ...], Tensor], None]:
     """Return a forward hook that feeds the layer input into acc."""
-    def hook(module: nn.Module, inputs: tuple, output: Tensor) -> None:
+    def hook(module: nn.Module, inputs: tuple[Any, ...], output: Tensor) -> None:
         # inputs[0] is the activation tensor entering nn.Linear:
         # shape [batch, seq_len, in_features] or [batch, in_features]
         acc.accumulate(inputs[0])

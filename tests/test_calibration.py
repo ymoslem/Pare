@@ -6,7 +6,6 @@ import torch
 from pare.calibration.observer import RangeObserver
 from pare.config import QuantConfig
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------

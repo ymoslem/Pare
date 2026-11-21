@@ -17,8 +17,8 @@ Run with:
 import pytest
 
 from pare import QuantConfig, quantize
-from pare.eval.perplexity import evaluate_perplexity
 from pare.eval.lambada import evaluate_lambada
+from pare.eval.perplexity import evaluate_perplexity
 
 # Number of sequences / examples to evaluate on CPU.
 N_SAMPLES_PPL   = 20     # WikiText-2 sequences

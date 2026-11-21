@@ -38,13 +38,13 @@ class BaseQuantizer(ABC):
 
     def __init__(
         self,
-        config: "QuantConfig",
-        layer_bits_override: "dict[str, int] | None" = None,
+        config: QuantConfig,
+        layer_bits_override: dict[str, int] | None = None,
     ) -> None:
         self.config = config
         self._layer_bits_override: dict[str, int] = layer_bits_override or {}
 
-    def _config_for_layer(self, name: str) -> "QuantConfig":
+    def _config_for_layer(self, name: str) -> QuantConfig:
         """Return the effective QuantConfig for this layer.
 
         If ``name`` appears in the sensitivity override dict, returns a copy
@@ -62,7 +62,7 @@ class BaseQuantizer(ABC):
         self,
         linear: nn.Linear,
         name: str,
-    ) -> "QuantizedLinear":
+    ) -> QuantizedLinear:
         """Quantize a single linear layer and return its replacement.
 
         Args:

@@ -7,7 +7,8 @@ PIQA, WinoGrande, OpenBookQA, RTE, and COPA.
 Install:
     pip install "lm-eval>=0.4.12"
     # On Python <3.13, patch result_schema.py to remove extra_items= from TypedDict classes:
-    #   sed -i 's/, extra_items=[^)]*)//' $(python -c "import lm_eval,os; print(os.path.join(os.path.dirname(lm_eval.__file__),'result_schema.py'))")
+    #   FILE=$(python -c "import lm_eval, os; print(os.path.dirname(lm_eval.__file__))")
+    #   sed -i 's/, extra_items=[^)]*)//' "$FILE/result_schema.py"
 
 Usage:
     # Evaluate all schemes on Llama-3.1-8B
@@ -41,9 +42,10 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+from provenance import record
+
 from pare import QuantConfig, quantize
 from pare.calibration.data import load_wikitext2_calibration
-from provenance import record
 
 RESULTS_DIR = Path(__file__).parent.parent / "results"
 

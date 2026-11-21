@@ -14,14 +14,18 @@ there is less important than the weight MSE alone would suggest.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import Any
+
 import torch
 import torch.nn as nn
 from torch import Tensor
+from torch.utils.hooks import RemovableHandle
 
 
 def score_layers(
     model: nn.Module,
-    calibration_data: list,
+    calibration_data: list[Tensor],
     bits: int,
     granularity: str,
     group_size: int,
@@ -54,10 +58,10 @@ def score_layers(
 
     dtype = QuantDtype.from_bits(bits)
     activations: dict[str, Tensor] = {}
-    hooks: list = []
+    hooks: list[RemovableHandle] = []
 
-    def _make_hook(layer_name: str):
-        def hook(mod: nn.Module, inp: tuple, out: Tensor) -> None:
+    def _make_hook(layer_name: str) -> Callable[[nn.Module, tuple[Any, ...], Tensor], None]:
+        def hook(mod: nn.Module, inp: tuple[Any, ...], out: Tensor) -> None:
             if layer_name in activations:
                 return  # already have enough samples
             x = inp[0].detach().float()          # [batch, seq, in] or [batch, in]

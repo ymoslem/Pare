@@ -29,10 +29,11 @@ from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from pare.kv_cache import (
-    _dequantize_keys, _dequantize_values,
-    _quantize_keys, _quantize_values,
+    _dequantize_keys,
+    _dequantize_values,
+    _quantize_keys,
+    _quantize_values,
 )
-
 
 # ---------------------------------------------------------------------------
 # CLI
@@ -126,7 +127,7 @@ def main():
     args = parse_args()
     sep = "=" * 64
     print(f"\n{sep}")
-    print(f"  KV Cache Benchmark — KIVI")
+    print("  KV Cache Benchmark — KIVI")
     print(f"  {args.model}  |  {args.bits}-bit  |  group_size={args.group_size}")
     print(f"{sep}\n")
 
@@ -159,7 +160,7 @@ def main():
     print(f"  FP16  PPL = {ppl_fp16:.4f}  ({time.time()-t0:.0f}s)")
 
     # ── KIVI ──────────────────────────────────────────────────────────────
-    print(f"\n── KIVI ──")
+    print("\n── KIVI ──")
     print(f"  [MSE] {args.n_mse} seqs × {args.seq_len} tokens…")
     t0 = time.time()
     with patched_sdpa(bits=args.bits, group_size=args.group_size,

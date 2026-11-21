@@ -21,17 +21,17 @@ class _DTypeSpec:
     def qmin(self) -> int:
         if self.is_float:
             raise TypeError("float dtypes have no integer qmin/qmax")
-        return -(2 ** (self.bits - 1)) if self.signed else 0
+        return int(-(2 ** (self.bits - 1)) if self.signed else 0)
 
     @property
     def qmax(self) -> int:
         if self.is_float:
             raise TypeError("float dtypes have no integer qmin/qmax")
-        return (2 ** (self.bits - 1) - 1) if self.signed else (2**self.bits - 1)
+        return int((2 ** (self.bits - 1) - 1) if self.signed else (2**self.bits - 1))
 
     @property
     def levels(self) -> int:
-        return 2**self.bits
+        return int(2**self.bits)
 
 
 class QuantDtype(Enum):
@@ -90,7 +90,7 @@ class QuantDtype(Enum):
     # ------------------------------------------------------------------
 
     @classmethod
-    def from_bits(cls, bits: int, *, signed: bool = False) -> "QuantDtype":
+    def from_bits(cls, bits: int, *, signed: bool = False) -> QuantDtype:
         """Return the standard integer dtype for a given bit-width."""
         mapping = {
             (2, False): cls.INT2,

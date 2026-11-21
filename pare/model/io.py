@@ -32,9 +32,8 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-import torch
 import torch.nn as nn
 from torch import Tensor
 
@@ -68,7 +67,7 @@ def save_quantized(model: nn.Module, path: str | Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
     # ── 1. Collect metadata for every QuantizedLinear ──────────────────
-    quantized_layers: dict[str, dict] = {}
+    quantized_layers: dict[str, dict[str, Any]] = {}
     for name, module in model.named_modules():
         if isinstance(module, QuantizedLinear):
             quantized_layers[name] = {
@@ -155,7 +154,7 @@ def load_quantized(model: nn.Module, path: str | Path) -> nn.Module:
     # ── 1. Load metadata ───────────────────────────────────────────────
     with open(path / _PARE_CONFIG_FILE) as f:
         meta = json.load(f)
-    ql_meta: dict[str, dict] = meta["quantized_layers"]
+    ql_meta: dict[str, dict[str, Any]] = meta["quantized_layers"]
 
     # ── 2. Load all tensors ────────────────────────────────────────────
     tensors: dict[str, Tensor] = load_file(path / _TENSORS_FILE)

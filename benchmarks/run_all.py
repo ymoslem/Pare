@@ -46,10 +46,11 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+from provenance import record
+
 from pare import QuantConfig, quantize
 from pare.calibration.data import load_wikitext2_calibration
 from pare.eval.perplexity import evaluate_perplexity
-from provenance import record
 from pare.eval.throughput import benchmark_throughput
 
 DEVICE    = "cuda"
@@ -124,7 +125,7 @@ def run_one(
 
     # Throughput
     if not skip_throughput:
-        print(f"[bench] Benchmarking throughput ...", flush=True)
+        print("[bench] Benchmarking throughput ...", flush=True)
         thr = benchmark_throughput(
             model_q, tokenizer,
             seq_len=256, n_generate=128,
@@ -174,7 +175,9 @@ def main():
                 continue
 
             try:
-                r = run_one(model_key, method_key, model, tokenizer, calib_data, args.skip_throughput)
+                r = run_one(
+                    model_key, method_key, model, tokenizer, calib_data, args.skip_throughput
+                )
                 results[tag] = r
             except Exception as e:
                 print(f"[bench] {tag} FAILED: {e}", flush=True)

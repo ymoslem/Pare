@@ -11,7 +11,6 @@ from pare.core.dtype import QuantDtype
 from pare.core.functional import _NF4_TABLE, dequantize_nf4, quantize_nf4
 from pare.layers.linear import QuantizedLinear
 
-
 # ---------------------------------------------------------------------------
 # 1. NF4 codebook
 # ---------------------------------------------------------------------------

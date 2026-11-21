@@ -50,6 +50,12 @@ class QuantizedLinear(nn.Module):
         out_features: Original linear layer ``out_features``.
     """
 
+    packed_weight: Tensor | None
+    q_weight: Tensor | None
+    scale: Tensor
+    zero: Tensor
+    bias: nn.Parameter | None
+
     def __init__(
         self,
         q_weight: Tensor,
@@ -101,17 +107,21 @@ class QuantizedLinear(nn.Module):
     def dequantize(self) -> Tensor:
         """Reconstruct the full float weight matrix."""
         if self.config.effective_dtype == QuantDtype.NF4:
+            assert self.packed_weight is not None
             indices = unpack_int4(self.packed_weight)           # [out, in] int32
             return dequantize_nf4(indices, self.scale).reshape(self.out_features, self.in_features)
 
         if self.config.effective_dtype in (QuantDtype.FP8_E4M3, QuantDtype.FP8_E5M2):
+            assert self.q_weight is not None
             return dequantize_fp8(self.q_weight, self.scale).reshape(
                 self.out_features, self.in_features
             )
 
         if self.config.bits == 4:
+            assert self.packed_weight is not None
             q = unpack_int4(self.packed_weight)
         else:
+            assert self.q_weight is not None
             q = self.q_weight.to(torch.int32)
 
         w_float = dequantize_tensor(q, self.scale, self.zero)
@@ -139,13 +149,15 @@ class QuantizedLinear(nn.Module):
 
     def _forward_kernel(self, x: Tensor) -> Tensor:
         """Forward pass using the fused Triton INT4 dequant+matmul kernel."""
-        from pare.kernels.matmul_int4 import matmul_w4a16
         from pare.core.pack import repack_int4_for_kernel
+        from pare.kernels.matmul_int4 import matmul_w4a16
 
-        group_size = self.config.group_size if self.config.granularity == "per_group" else self.in_features
+        per_group = self.config.granularity == "per_group"
+        group_size = self.config.group_size if per_group else self.in_features
 
         # Lazily repack storage-layout weights into kernel-layout (done once per layer).
         if not hasattr(self, "_packed_weight_kernel"):
+            assert self.packed_weight is not None
             self._packed_weight_kernel = repack_int4_for_kernel(
                 self.packed_weight, group_size=group_size
             )
@@ -174,7 +186,7 @@ class QuantizedLinear(nn.Module):
         in_features: int,
         out_features: int,
         quantize_inputs: bool = False,
-    ) -> "QuantizedLinear":
+    ) -> QuantizedLinear:
         """Reconstruct from already-packed/quantized tensors loaded from disk.
 
         Bypasses the packing step in ``__init__`` — used by ``load_quantized``.
@@ -209,7 +221,7 @@ class QuantizedLinear(nn.Module):
         cls,
         linear: nn.Linear,
         config: QuantConfig,
-    ) -> "QuantizedLinear":
+    ) -> QuantizedLinear:
         """Quantize an ``nn.Linear`` with RTN and return a QuantizedLinear.
 
         For GPTQ/AWQ use the respective quantizer classes directly.

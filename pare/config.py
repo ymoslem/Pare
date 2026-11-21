@@ -67,7 +67,8 @@ class QuantConfig:
     awq_n_grid: int = 20
 
     # SmoothQuant
-    smooth_alpha: float = 0.5   # migration strength: 0 = no migration, 1 = full migration to weights
+    # Migration strength: 0 = no migration, 1 = full migration to the weights.
+    smooth_alpha: float = 0.5
 
     # Mixed-precision sensitivity
     # Layers whose activation-weighted reconstruction error exceeds

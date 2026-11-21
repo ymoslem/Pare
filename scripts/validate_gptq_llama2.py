@@ -5,9 +5,11 @@ Target: WikiText-2 PPL within AutoGPTQ published range 5.65–5.75.
     python scripts/validate_gptq_llama2.py
 """
 
-import os, sys, time, torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
+import os
+import time
 
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from pare import QuantConfig, quantize
 from pare.calibration.data import load_wikitext2_calibration
@@ -48,7 +50,8 @@ def main():
 
     print("\n" + "="*60)
     print(f"  Llama-2-7B  GPTQ INT4  WikiText-2 PPL: {ppl:.2f}")
-    print(f"  Published AutoGPTQ range: 5.65–5.75  →  {'PASS ✓' if 5.65 <= ppl <= 5.75 else 'check'}")
+    verdict = "PASS" if 5.65 <= ppl <= 5.75 else "check"
+    print(f"  Published AutoGPTQ range: 5.65 to 5.75: {verdict}")
     print(f"  FP16 baseline: 5.47  delta: +{ppl - 5.47:.2f}")
     print("="*60)
 

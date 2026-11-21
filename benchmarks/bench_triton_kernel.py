@@ -22,11 +22,9 @@ import torch.nn as nn
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from pare.config import QuantConfig
-from pare.core.dtype import QuantDtype
 from pare.core.pack import repack_int4_for_kernel
 from pare.kernels.matmul_int4 import matmul_w4a16, triton_available
 from pare.layers.linear import QuantizedLinear
-
 
 DEVICE = "cuda"
 DTYPE  = torch.float16
@@ -127,7 +125,8 @@ def bench_throughput():
         if batch_size == 4 and speedup >= 1.5:
             gate_passed = True
         gate_str = "✓ PASS" if speedup >= 1.5 else "✗ FAIL" if batch_size == 4 else ""
-        print(f"{batch_size:>4}  {ms_dequant:>12.3f}  {ms_kernel:>12.3f}  {speedup:>10.2f}×  {gate_str:>12}")
+        print(f"{batch_size:>4}  {ms_dequant:>12.3f}  {ms_kernel:>12.3f}  "
+              f"{speedup:>10.2f}×  {gate_str:>12}")
 
     print()
     if gate_passed:

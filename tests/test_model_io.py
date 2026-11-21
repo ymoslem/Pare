@@ -10,7 +10,6 @@ always run.
 """
 
 import copy
-import tempfile
 
 import pytest
 import torch
@@ -18,7 +17,6 @@ import torch
 from pare import QuantConfig, QuantDtype, load_quantized, quantize, save_quantized
 from pare.eval.perplexity import evaluate_perplexity
 from pare.layers.linear import QuantizedLinear
-
 
 # ---------------------------------------------------------------------------
 # GPT-2 round-trips (no model.model.layers — RTN fallback)
@@ -123,7 +121,9 @@ class TestGPT2IO:
         model_loaded = copy.deepcopy(model)
         load_quantized(model_loaded, save_dir)
 
-        n_ql_after = sum(1 for _, m in model_loaded.named_modules() if isinstance(m, QuantizedLinear))
+        n_ql_after = sum(
+            1 for _, m in model_loaded.named_modules() if isinstance(m, QuantizedLinear)
+        )
         assert n_ql_after == n_ql_before, (
             f"QuantizedLinear count changed: {n_ql_before} → {n_ql_after}"
         )

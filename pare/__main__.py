@@ -44,6 +44,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from typing import Any
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -112,8 +113,10 @@ def cmd_quantize(args: argparse.Namespace) -> None:
     torch_dtype = dtype_map[args.dtype]
 
     print(f"[pare] Loading {args.model} ...", flush=True)
-    tokenizer = AutoTokenizer.from_pretrained(args.model, token=args.token)
-    model = AutoModelForCausalLM.from_pretrained(
+    tokenizer: Any = AutoTokenizer.from_pretrained(  # type: ignore[no-untyped-call]
+        args.model, token=args.token
+    )
+    model: Any = AutoModelForCausalLM.from_pretrained(
         args.model, torch_dtype=torch_dtype, token=args.token, device_map="auto",
     )
     model.eval()
@@ -152,8 +155,10 @@ def cmd_eval(args: argparse.Namespace) -> None:
     torch_dtype = dtype_map[args.dtype]
 
     print(f"[pare] Loading {args.model} ...", flush=True)
-    tokenizer = AutoTokenizer.from_pretrained(args.model, token=args.token)
-    model = AutoModelForCausalLM.from_pretrained(
+    tokenizer: Any = AutoTokenizer.from_pretrained(  # type: ignore[no-untyped-call]
+        args.model, token=args.token
+    )
+    model: Any = AutoModelForCausalLM.from_pretrained(
         args.model, torch_dtype=torch_dtype, token=args.token, device_map="auto",
     )
     model.eval()

@@ -40,6 +40,7 @@ Reference: https://arxiv.org/abs/2211.10438
 from __future__ import annotations
 
 import warnings
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -64,7 +65,7 @@ class SmoothQuantQuantizer(BaseQuantizer):
         model = quantize(model, config, calibration_data=calib_ids, device="cuda")
     """
 
-    def quantize_model(  # type: ignore[override]
+    def quantize_model(
         self,
         model: nn.Module,
         calibration_data: list[Tensor] | None = None,
@@ -123,12 +124,16 @@ class _LayerwiseSmoothQuant:
         device: str | torch.device,
     ) -> nn.Module:
         from pare.calibration.layerwise import (
-            _call_layer, _capture_embeddings,
-            _find_layers_path, _precompute_pe, _set_submodule,
+            _call_layer,
+            _capture_embeddings,
+            _find_layers_path,
+            _precompute_pe,
+            _set_submodule,
+            decoder_layers,
         )
 
         device    = torch.device(device)
-        layers    = model.model.layers
+        layers    = decoder_layers(model)
         seq_len   = calibration_data[0].shape[1]
         n_layers  = len(layers)
 
@@ -186,13 +191,13 @@ def _collect_max_abs(
     layer: nn.Module,
     named_linears: dict[str, nn.Linear],
     inps: list[Tensor],
-    pe,
+    pe: tuple[Tensor, Tensor] | None,
     device: torch.device,
-    config: "QuantConfig | None" = None,
+    config: QuantConfig | None = None,
 ) -> dict[str, Tensor]:
     """Collect per-channel activation range for each linear layer's input."""
-    from pare.calibration.observer import ActivationObserver, RangeObserver
     from pare.calibration.layerwise import _call_layer
+    from pare.calibration.observer import ActivationObserver, RangeObserver
 
     mode = config.calibration if config is not None else "absmax"
     percentile = config.calibration_percentile if config is not None else 99.99
@@ -221,9 +226,10 @@ def _collect_max_abs(
     for h in hooks:
         h.remove()
 
-    if mode == "absmax":
-        return {n: obs.max_abs() for n, obs in observers.items()}  # type: ignore[union-attr]
-    return {n: obs.finalize() for n, obs in observers.items()}  # type: ignore[union-attr]
+    return {
+        n: obs.max_abs() if isinstance(obs, ActivationObserver) else obs.finalize()
+        for n, obs in observers.items()
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -257,8 +263,9 @@ def _apply_smooth_groups(
         return False
 
     alpha = config.smooth_alpha
-    attn  = layer.self_attn
-    mlp   = layer.mlp
+    attn: Any = layer.self_attn
+    mlp: Any = layer.mlp
+    input_ln: Any = layer.input_layernorm
 
     # ── Group 1: input_layernorm → [q_proj, k_proj, v_proj] ──────────
     if hasattr(attn, "q_proj"):
@@ -266,7 +273,7 @@ def _apply_smooth_groups(
         if x_max is not None:
             fcs = [attn.q_proj, attn.k_proj, attn.v_proj]
             s   = _smooth_factor(x_max, fcs, alpha)
-            _scale_ln_fcs(layer.input_layernorm, fcs, s)
+            _scale_ln_fcs(input_ln, fcs, s)
 
     # ── Group 2: v_proj → [o_proj] ───────────────────────────────────
     # Skipped for GQA, where v_proj and o_proj dimensions differ, and when a

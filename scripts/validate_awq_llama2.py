@@ -8,9 +8,12 @@ Expected AWQ INT4: ~5.55–5.65 delta (similar to GPTQ, sometimes slightly bette
     python scripts/validate_awq_llama2.py
 """
 
-import os, sys, time, torch
-from transformers import AutoTokenizer, AutoModelForCausalLM
+import os
+import sys
+import time
 
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 from pare import QuantConfig, quantize
 from pare.calibration.data import load_wikitext2_calibration

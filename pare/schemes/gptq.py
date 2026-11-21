@@ -51,7 +51,9 @@ class GPTQQuantizer(BaseQuantizer):
         model = quantize(model, config, calibration_data=calib_ids)
     """
 
-    def __init__(self, config: QuantConfig, layer_bits_override: dict | None = None) -> None:
+    def __init__(
+        self, config: QuantConfig, layer_bits_override: dict[str, int] | None = None
+    ) -> None:
         super().__init__(config, layer_bits_override=layer_bits_override)
         self._hessians: dict[str, Tensor] = {}
 
@@ -59,7 +61,7 @@ class GPTQQuantizer(BaseQuantizer):
     # Model-level entry point (overrides base to inject calibration data)
     # ------------------------------------------------------------------
 
-    def quantize_model(  # type: ignore[override]
+    def quantize_model(
         self,
         model: nn.Module,
         calibration_data: list[Tensor] | None = None,
@@ -85,7 +87,7 @@ class GPTQQuantizer(BaseQuantizer):
                 "    quantize(model, config, calibration_data=calib_ids)"
             )
 
-        from pare.calibration.layerwise import is_supported, LayerwiseGPTQ
+        from pare.calibration.layerwise import LayerwiseGPTQ, is_supported
 
         if is_supported(model):
             return LayerwiseGPTQ().run(model, calibration_data, self, device)
@@ -205,7 +207,7 @@ def _gptq_one_layer(
         L = torch.linalg.cholesky(H)
         Hinv = torch.cholesky_inverse(L)
         C = torch.linalg.cholesky(Hinv, upper=True)
-    except torch.linalg.LinAlgError:
+    except torch.linalg.LinAlgError:  # type: ignore[attr-defined]
         # Cholesky failed even after damping; increase damping and retry.
         H.diagonal().add_(damp * 10.0)
         L = torch.linalg.cholesky(H)

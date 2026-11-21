@@ -26,6 +26,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import torch.nn as nn
+from torch import Tensor
 
 if TYPE_CHECKING:
     from pare.schemes.base import BaseQuantizer
@@ -39,7 +40,7 @@ class ModelPatcher:
                    ``quantize_layer`` and ``_should_quantize``.
     """
 
-    def __init__(self, quantizer: "BaseQuantizer") -> None:
+    def __init__(self, quantizer: BaseQuantizer) -> None:
         self.quantizer = quantizer
 
     def patch(self, model: nn.Module) -> nn.Module:
@@ -72,12 +73,14 @@ class ModelPatcher:
         from pare.schemes.base import _quantizable_module_types
         quantizable = _quantizable_module_types()
 
-        results = []
+        results: list[tuple[nn.Module, str, nn.Module, str]] = []
         for full_name, module in model.named_modules():
             for attr_name, child in module.named_children():
-                if isinstance(child, quantizable):
-                    child_full_name = f"{full_name}.{attr_name}".lstrip(".")
-                    results.append((module, attr_name, child, child_full_name))
+                if not isinstance(child, quantizable):
+                    continue
+                assert isinstance(child, nn.Module)
+                child_full_name = f"{full_name}.{attr_name}".lstrip(".")
+                results.append((module, attr_name, child, child_full_name))
         return results
 
 
@@ -95,9 +98,11 @@ def _to_linear(module: nn.Module) -> nn.Linear:
         return module
 
     # transformers.Conv1D — graceful import so transformers stays optional.
-    in_features, out_features = module.weight.shape   # [in, out] for Conv1D
-    linear = nn.Linear(in_features, out_features, bias=module.bias is not None)
-    linear.weight.data = module.weight.T.detach().clone()
-    if module.bias is not None:
-        linear.bias.data = module.bias.detach().clone()
+    weight, bias = module.weight, module.bias
+    assert isinstance(weight, Tensor)
+    in_features, out_features = weight.shape   # [in, out] for Conv1D
+    linear = nn.Linear(in_features, out_features, bias=bias is not None)
+    linear.weight.data = weight.T.detach().clone()
+    if isinstance(bias, Tensor):
+        linear.bias.data = bias.detach().clone()
     return linear

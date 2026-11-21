@@ -29,7 +29,7 @@ def benchmark_throughput(
     batch_sizes: list[int] | None = None,
     device: str | torch.device = "cuda",
     n_warmup: int = 3,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Measure autoregressive generation throughput and peak VRAM.
 
     Args:
@@ -88,9 +88,10 @@ def _run_batch(
     n_generate: int,
     device: torch.device,
     n_warmup: int,
-) -> dict:
+) -> dict[str, Any]:
     """Time one (batch_size, n_generate) configuration."""
     batch_ids = input_ids.repeat(batch_size, 1).to(device)
+    generate: Any = model.generate
 
     torch.cuda.reset_peak_memory_stats(device)
     torch.cuda.synchronize(device)
@@ -98,7 +99,7 @@ def _run_batch(
     # Warmup
     for _ in range(n_warmup):
         with torch.no_grad():
-            model.generate(batch_ids, max_new_tokens=n_generate, do_sample=False)
+            generate(batch_ids, max_new_tokens=n_generate, do_sample=False)
         torch.cuda.synchronize(device)
 
     torch.cuda.reset_peak_memory_stats(device)
@@ -106,7 +107,7 @@ def _run_batch(
     t0 = time.perf_counter()
 
     with torch.no_grad():
-        model.generate(batch_ids, max_new_tokens=n_generate, do_sample=False)
+        generate(batch_ids, max_new_tokens=n_generate, do_sample=False)
 
     torch.cuda.synchronize(device)
     elapsed = time.perf_counter() - t0
@@ -127,8 +128,8 @@ def _run_batch(
 
 
 def format_results_table(
-    fp16_results: list[dict],
-    quantized_results: list[dict],
+    fp16_results: list[dict[str, Any]],
+    quantized_results: list[dict[str, Any]],
     label: str = "INT4",
 ) -> str:
     """Format a comparison table: FP16 vs quantized."""

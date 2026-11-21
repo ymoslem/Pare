@@ -8,6 +8,8 @@ more sophisticated methods (GPTQ, AWQ) gain over this naive baseline.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import torch.nn as nn
 
 from pare.config import QuantConfig
@@ -15,6 +17,9 @@ from pare.core.dtype import QuantDtype
 from pare.core.functional import quantize_tensor
 from pare.core.scale import compute_scale
 from pare.schemes.base import BaseQuantizer
+
+if TYPE_CHECKING:
+    from pare.layers.linear import QuantizedLinear
 
 
 class RTNQuantizer(BaseQuantizer):
@@ -25,14 +30,16 @@ class RTNQuantizer(BaseQuantizer):
     INT4 with the same group size.
     """
 
-    def __init__(self, config: QuantConfig, layer_bits_override: dict | None = None) -> None:
+    def __init__(
+        self, config: QuantConfig, layer_bits_override: dict[str, int] | None = None
+    ) -> None:
         super().__init__(config, layer_bits_override=layer_bits_override)
 
     def quantize_layer(
         self,
         linear: nn.Linear,
         name: str,
-    ) -> "QuantizedLinear":  # type: ignore[override]
+    ) -> QuantizedLinear:
         from pare.layers.linear import QuantizedLinear
 
         cfg = self._config_for_layer(name)

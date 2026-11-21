@@ -11,10 +11,9 @@ import torch
 import torch.nn as nn
 
 from pare.config import QuantConfig
-from pare.core.pack import pack_int4, repack_int4_for_kernel, unpack_int4
+from pare.core.pack import pack_int4, repack_int4_for_kernel
 from pare.kernels.matmul_int4 import triton_available
 from pare.layers.linear import QuantizedLinear
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -255,6 +254,7 @@ class TestThroughputGate:
     def test_speedup_at_bs4(self):
         """Triton kernel should be ≥ 1.5× faster than dequant-on-the-fly at BS=4."""
         import time
+
         from pare.kernels.matmul_int4 import matmul_w4a16
 
         N_WARMUP, N_TIMED = 3, 10

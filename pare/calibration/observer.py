@@ -49,6 +49,7 @@ class ActivationObserver:
             self._sum = torch.zeros(x.shape[1], device=x.device, dtype=torch.float32)
             self._max = torch.zeros(x.shape[1], device=x.device, dtype=torch.float32)
 
+        assert self._max is not None
         self._sum.add_(x_abs.sum(dim=0))
         torch.maximum(self._max, x_abs.amax(dim=0), out=self._max)
         self._n_tokens += x.shape[0]

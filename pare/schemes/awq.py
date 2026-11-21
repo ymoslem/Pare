@@ -36,6 +36,7 @@ Reference: https://arxiv.org/abs/2306.00978
 from __future__ import annotations
 
 import warnings
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -58,7 +59,7 @@ class AWQQuantizer(BaseQuantizer):
         model = quantize(model, config, calibration_data=calib_ids, device="cuda")
     """
 
-    def quantize_model(  # type: ignore[override]
+    def quantize_model(
         self,
         model: nn.Module,
         calibration_data: list[Tensor] | None = None,
@@ -128,12 +129,16 @@ class _LayerwiseAWQ:
         device: str | torch.device,
     ) -> nn.Module:
         from pare.calibration.layerwise import (
-            _Catcher, _call_layer, _capture_embeddings,
-            _find_layers_path, _precompute_pe, _set_submodule,
+            _call_layer,
+            _capture_embeddings,
+            _find_layers_path,
+            _precompute_pe,
+            _set_submodule,
+            decoder_layers,
         )
 
         device = torch.device(device)
-        layers = model.model.layers
+        layers = decoder_layers(model)
         seq_len = calibration_data[0].shape[1]
 
         inps = _capture_embeddings(model, layers, calibration_data, device)
@@ -190,12 +195,12 @@ def _collect_act_stats(
     layer: nn.Module,
     named_linears: dict[str, nn.Linear],
     inps: list[Tensor],
-    pe,
+    pe: tuple[Tensor, Tensor] | None,
     device: torch.device,
 ) -> dict[str, Tensor]:
     """Run calibration data through layer and return mean |x| per linear input."""
-    from pare.calibration.observer import ActivationObserver
     from pare.calibration.layerwise import _call_layer
+    from pare.calibration.observer import ActivationObserver
 
     observers: dict[str, ActivationObserver] = {n: ActivationObserver() for n in named_linears}
     hooks = [
@@ -248,16 +253,17 @@ def _apply_awq_groups(
         )
         return False
 
-    attn = layer.self_attn
-    mlp  = layer.mlp
+    attn: Any = layer.self_attn
+    mlp: Any = layer.mlp
+    input_ln: Any = layer.input_layernorm
 
     # ── Group 1: input_layernorm → [q_proj, k_proj, v_proj] ──────────
-    if hasattr(layer, "input_layernorm") and hasattr(attn, "q_proj"):
+    if hasattr(attn, "q_proj"):
         x_max = act_stats.get("self_attn.q_proj")
         if x_max is not None:
             fcs = [attn.q_proj, attn.k_proj, attn.v_proj]
             s   = _search_scale(fcs, x_max, config)
-            _scale_ln_fcs(layer.input_layernorm, fcs, s)
+            _scale_ln_fcs(input_ln, fcs, s)
 
     # ── Group 2: v_proj → [o_proj] ───────────────────────────────────
     # Skipped for GQA models (e.g. Qwen2.5, Mistral) where v_proj outputs
@@ -395,10 +401,13 @@ def _scale_ln_fcs(
     LayerNorm output becomes x/s; successor weights become W·diag(s).
     Product is unchanged: (W·diag(s)) · (x/s) = Wx.
     """
-    s = s.to(ln.weight.device)
-    ln.weight.data.div_(s)
-    if hasattr(ln, "bias") and ln.bias is not None:
-        ln.bias.data.div_(s)
+    weight = ln.weight
+    assert isinstance(weight, Tensor)
+    s = s.to(weight.device)
+    weight.data.div_(s)
+    bias = getattr(ln, "bias", None)
+    if isinstance(bias, Tensor):
+        bias.data.div_(s)
     for fc in fcs:
         fc.weight.data.mul_(s.to(fc.weight.device).view(1, -1))
 

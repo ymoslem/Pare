@@ -17,13 +17,15 @@ Usage::
 
 from __future__ import annotations
 
+from typing import Any
+
 from torch import Tensor
 
 _WIKITEXT2 = ("Salesforce/wikitext", "wikitext-2-raw-v1")
 
 
 def load_wikitext2_calibration(
-    tokenizer,
+    tokenizer: Any,
     n_samples: int = 128,
     seq_len: int = 2048,
     split: str = "train",

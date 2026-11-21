@@ -139,7 +139,7 @@ _FP8_E4M3_MAX: float = 448.0    # max finite value for torch.float8_e4m3fn
 _FP8_E5M2_MAX: float = 57344.0  # max finite value for torch.float8_e5m2
 
 
-def quantize_fp8(x: Tensor, scale: Tensor, fp8_dtype: "QuantDtype") -> Tensor:
+def quantize_fp8(x: Tensor, scale: Tensor, fp8_dtype: QuantDtype) -> Tensor:
     """Quantize ``x`` to FP8 via a saturating cast after scale normalisation.
 
     Args:
