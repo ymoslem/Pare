@@ -26,4 +26,4 @@ huggingface_hub==1.21.0
 lm-eval==0.4.12
 
 # Pare
-git+https://github.com/TinyAdapt/Pare.git
+git+https://github.com/ymoslem/Pare.git

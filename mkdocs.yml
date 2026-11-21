@@ -1,8 +1,8 @@
 site_name: Pare
 site_description: Production-ready quantization for large language and multimodal models
 site_author: Yasmin Moslem
-repo_url: https://github.com/TinyAdapt/Pare
-repo_name: TinyAdapt/Pare
+repo_url: https://github.com/ymoslem/Pare
+repo_name: ymoslem/Pare
 
 theme:
   name: material
@@ -45,6 +45,6 @@ markdown_extensions:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/TinyAdapt/Pare
+      link: https://github.com/ymoslem/Pare
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/pare-quant

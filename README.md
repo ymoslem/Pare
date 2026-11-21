@@ -178,6 +178,6 @@ Other resources:
   author = {Moslem, Yasmin},
   title  = {Pare: A unified, architecture-agnostic library for reproducible LLM quantization},
   year   = {2026},
-  url    = {https://github.com/TinyAdapt/Pare},
+  url    = {https://github.com/ymoslem/Pare},
 }
 ```

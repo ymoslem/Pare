@@ -34,4 +34,4 @@ pip install pare-quant
 pip install "pare-quant[all]"   # + transformers, datasets, Triton kernel
 ```
 
-See the [README](https://github.com/TinyAdapt/Pare) for the full benchmark table and usage guide.
+See the [README](https://github.com/ymoslem/Pare) for the full benchmark table and usage guide.
