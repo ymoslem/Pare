@@ -25,7 +25,7 @@ def evaluate_perplexity(
     model: nn.Module,
     tokenizer,
     dataset: str = "wikitext2",
-    seq_len: int = 2048,
+    seq_len: int | None = None,
     n_samples: int | None = None,
     device: str | torch.device = "cpu",
     verbose: bool = False,
@@ -38,6 +38,9 @@ def evaluate_perplexity(
         tokenizer: Matching tokenizer.
         dataset:   ``"wikitext2"`` or ``"c4"``.
         seq_len:   Context window length (stride = seq_len, no overlap).
+                   None (default) means 2048, or the model's own context
+                   window when that is shorter (see ``_infer_seq_len``).
+                   2048 is the length used in the GPTQ and AWQ papers.
         n_samples: Cap the number of sequences evaluated (None = all).
                    Useful for quick CPU smoke tests (e.g. n_samples=10).
         device:    Where to run evaluation.
@@ -48,6 +51,9 @@ def evaluate_perplexity(
     """
     model = model.to(device)
     model.eval()
+
+    if seq_len is None:
+        seq_len = _infer_seq_len(model)
 
     encodings = _load_and_encode(tokenizer, dataset)
     total_nll = 0.0
@@ -77,8 +83,36 @@ def evaluate_perplexity(
     return math.exp(mean_nll)
 
 
+def _infer_seq_len(model: nn.Module, default: int = 2048) -> int:
+    """Return ``default``, capped at the model's context window.
+
+    The window is read from ``max_position_embeddings``, or ``n_positions``
+    for GPT-2 style configs. Models with no config keep ``default``.
+    Evaluating GPT-2 (1024 positions) at 2048 would index past its position
+    embeddings; capping gives the length its published perplexities use.
+    """
+    config = getattr(model, "config", None)
+    max_len = getattr(config, "max_position_embeddings", None) or getattr(
+        config, "n_positions", None
+    )
+    if not max_len:
+        return default
+    return min(default, max_len)
+
+
+# Cache of tokenized corpora, keyed by (tokenizer identity, dataset name).
+# _load_and_encode is called once per evaluate_perplexity() call; without this,
+# comparing several quantized variants of the same model re-tokenizes the full
+# test corpus from scratch every time, even though it's identical each call.
+_ENCODING_CACHE: dict[tuple[str, str], Tensor] = {}
+
+
 def _load_and_encode(tokenizer, dataset: str) -> Tensor:
     """Download and tokenize the test split, return as a flat token tensor."""
+    cache_key = (getattr(tokenizer, "name_or_path", repr(tokenizer)), dataset)
+    if cache_key in _ENCODING_CACHE:
+        return _ENCODING_CACHE[cache_key]
+
     try:
         from datasets import load_dataset
     except ImportError:
@@ -97,4 +131,5 @@ def _load_and_encode(tokenizer, dataset: str) -> Tensor:
         raise ValueError(f"Unknown dataset: {dataset!r}. Use 'wikitext2' or 'c4'.")
 
     tokens = tokenizer.encode(text, return_tensors="pt")
+    _ENCODING_CACHE[cache_key] = tokens
     return tokens
