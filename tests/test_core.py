@@ -82,6 +82,15 @@ class TestComputeScale:
         _, zero = compute_scale(w, QuantDtype.INT8, granularity="per_tensor", sym=True)
         assert zero.item() == 0.0
 
+    @pytest.mark.parametrize("dtype", [QuantDtype.INT2, QuantDtype.INT3, QuantDtype.INT4])
+    def test_sym_unsigned_zero_is_grid_midpoint(self, dtype):
+        w = self._weight()
+        scale, zero = compute_scale(w, dtype, granularity="per_channel", sym=True)
+        assert (zero == (dtype.qmax + 1) / 2).all()
+        # The grid spans [-absmax, absmax]: qmax steps of size `scale`.
+        absmax = w.abs().amax(dim=1, keepdim=True)
+        assert torch.allclose(scale * dtype.qmax, 2 * absmax)
+
     def test_asym_zero_in_range(self):
         w = self._weight()
         _, zero = compute_scale(w, QuantDtype.INT4, granularity="per_channel")
@@ -132,6 +141,24 @@ class TestRoundTrip:
         mae = (w - w_hat).abs().mean().item()
         # INT4 per_group=128 typically gives MAE < 0.1 on random normal weights
         assert mae < 0.12, f"INT4 MAE too high: {mae:.4f} ({granularity})"
+
+    @pytest.mark.parametrize("granularity", ["per_tensor", "per_channel", "per_group"])
+    def test_int4_sym_round_trip_keeps_negative_weights(self, granularity):
+        torch.manual_seed(42)
+        w = torch.randn(32, 128)
+        dtype = QuantDtype.INT4
+
+        scale, zero = compute_scale(
+            w, dtype, granularity=granularity, group_size=64, sym=True
+        )
+        q = quantize_tensor(w, scale, zero, dtype).reshape_as(w)
+        w_hat = dequantize_tensor(q, scale, zero).reshape_as(w)
+
+        # Every weight lands within half a step of a grid point, negative
+        # weights included (the top of the range clips by exactly half a step).
+        step = scale.max().item()
+        assert (w - w_hat).abs().max().item() <= 0.5 * step + 1e-6
+        assert (w_hat < 0).any(), "negative weights were clamped away"
 
     def test_q_values_in_range(self):
         torch.manual_seed(0)

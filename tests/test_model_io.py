@@ -217,6 +217,7 @@ class _TinyMLP(torch.nn.Module):
 
 _LOCAL_CONFIGS = {
     "int4": lambda: QuantConfig(bits=4, scheme="rtn"),
+    "int4-sym": lambda: QuantConfig(bits=4, scheme="rtn", sym=True),
     "int8": lambda: QuantConfig(bits=8, scheme="rtn", granularity="per_channel"),
     "nf4": lambda: QuantConfig(bits=4, dtype=QuantDtype.NF4, scheme="rtn"),
     "fp8": lambda: QuantConfig(bits=8, dtype=QuantDtype.FP8_E4M3, scheme="rtn"),

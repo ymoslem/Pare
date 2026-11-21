@@ -36,7 +36,9 @@ def compute_scale(
         dtype:       Target quantization dtype (must be an integer type).
         granularity: ``"per_tensor"`` | ``"per_channel"`` | ``"per_group"``.
         group_size:  Number of elements per group (only for ``"per_group"``).
-        sym:         If True, use symmetric quantization (zero = 0 always).
+        sym:         If True, use symmetric quantization over [-absmax, absmax].
+                     zero is 0 for signed dtypes and the grid midpoint
+                     ((qmax + 1) / 2) for unsigned dtypes.
 
     Returns:
         (scale, zero) as float tensors broadcastable against ``x``.
@@ -71,15 +73,22 @@ def _minmax_to_scale_zero(
 ) -> tuple[Tensor, Tensor]:
     """Convert per-group/channel min & max into (scale, zero_point)."""
     if sym:
-        # Symmetric: grid is centered at 0, no zero-point.
-        # Use the larger absolute value so the grid covers both sides.
+        # Symmetric: the range is [-abs_max, abs_max], using the larger
+        # absolute value so the grid covers both sides.
         abs_max = torch.maximum(x_min.abs(), x_max.abs())
         abs_max = abs_max.clamp(min=1e-8)
-        # For unsigned INT4 (qmin=0, qmax=15) symmetric: shift to [-8, 7]
-        # For signed INT8 (qmin=-128, qmax=127): use qmax directly
-        half = max(abs(qmin), abs(qmax))
-        scale = abs_max / half
-        zero = torch.zeros_like(scale)
+        if qmin < 0:
+            # Signed grid (INT8, [-128, 127]): centered at 0, no zero-point.
+            half = max(abs(qmin), abs(qmax))
+            scale = abs_max / half
+            zero = torch.zeros_like(scale)
+        else:
+            # Unsigned grid (INT2/3/4, [0, qmax]): the codes cannot be
+            # negative, so the zero-point is fixed at the grid midpoint and
+            # code q represents (q - midpoint) * scale. Same convention as the
+            # GPTQ reference quantizer (IST-DASLab/gptq, quant.py).
+            scale = 2.0 * abs_max / (qmax - qmin)
+            zero = torch.full_like(scale, (qmax + 1.0) / 2.0)
     else:
         # Asymmetric: stretch grid to exactly cover [x_min, x_max].
         x_min = x_min.clamp(max=0.0)   # ensure min ≤ 0 (include 0 in range)

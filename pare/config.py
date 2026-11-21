@@ -22,7 +22,9 @@ class QuantConfig:
                      ``"smoothquant"``.
         granularity: ``"per_tensor"`` | ``"per_channel"`` | ``"per_group"``.
         group_size:  Elements per quantization group (per_group only).
-        sym:         Symmetric quantization (zero_point = 0).
+        sym:         Symmetric quantization: the range is [-absmax, absmax].
+                     The zero-point is 0 for INT8 and the fixed grid midpoint
+                     for the unsigned 2-, 3- and 4-bit grids.
         modules:     List of regex patterns matching module names to quantize.
                      If None, all ``nn.Linear`` layers are quantized.
         exclude:     Module name substrings / patterns to skip.
