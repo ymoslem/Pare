@@ -49,6 +49,18 @@ class TestQuantDtype:
         assert QuantDtype.from_bits(4) == QuantDtype.INT4
         assert QuantDtype.from_bits(8) == QuantDtype.INT8
 
+    def test_no_member_is_an_alias(self):
+        """Enum turns a member whose value equals an earlier member's into an
+        alias of it. FP8_E5M2 used to alias FP8_E4M3 this way, so E5M2
+        quantization silently ran as E4M3.
+
+        Aliases are listed in ``__members__`` but skipped when iterating, so
+        the two counts differ whenever an alias exists.
+        """
+        assert len(QuantDtype.__members__) == len(list(QuantDtype))
+        assert QuantDtype.FP8_E5M2 is not QuantDtype.FP8_E4M3
+        assert QuantDtype.FP8_E5M2.name == "FP8_E5M2"
+
 
 # ---------------------------------------------------------------------------
 # Scale computation

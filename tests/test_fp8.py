@@ -41,9 +41,8 @@ class TestFP8Functions:
         result = quantize_fp8(W, scale, QuantDtype.FP8_E4M3)
         assert result.dtype == torch.float8_e4m3fn
 
-    @pytest.mark.skipif(not torch.cuda.is_available(), reason="float8_e5m2 cast requires CUDA")
     def test_output_dtype_e5m2(self):
-        W = torch.randn(8, 16).cuda()
+        W = torch.randn(8, 16)
         scale = W.abs().amax(dim=-1, keepdim=True) / _FP8_E5M2_MAX
         result = quantize_fp8(W, scale, QuantDtype.FP8_E5M2)
         assert result.dtype == torch.float8_e5m2

@@ -11,6 +11,11 @@ class _DTypeSpec:
     bits: int
     is_float: bool
     signed: bool
+    # Distinguishes float sub-formats that otherwise share (bits, is_float,
+    # signed) — e.g. FP8_E4M3 vs FP8_E5M2. Without this, two _DTypeSpec
+    # instances with identical field values compare equal, and Enum silently
+    # collapses the second-defined member into an alias of the first.
+    variant: str = ""
 
     @property
     def qmin(self) -> int:
@@ -36,17 +41,20 @@ class QuantDtype(Enum):
     for weight-only quantization (GPTQ, AWQ).  INT8 is the standard for
     weight+activation schemes (SmoothQuant, LLM.int8).
 
-    Float types: FP8 variants native on A100/H100.  NF4 is the 4-bit normal
-    float from QLoRA — not a uniform grid, but a non-uniform one optimized
-    for normally-distributed weights.
+    Float types: FP8 variants, stored as ``torch.float8_e4m3fn`` or
+    ``torch.float8_e5m2`` and dequantized to FP16/BF16 for the matmul. This
+    is weight-only FP8 and runs on any device PyTorch supports. Matmuls on
+    FP8 tensor cores (Hopper, Ada and later) are not implemented here.
+    NF4 is the 4-bit normal float from QLoRA: a non-uniform grid optimized
+    for normally-distributed weights rather than a uniform one.
     """
 
     INT2 = _DTypeSpec(bits=2, is_float=False, signed=False)
     INT3 = _DTypeSpec(bits=3, is_float=False, signed=False)
     INT4 = _DTypeSpec(bits=4, is_float=False, signed=False)
     INT8 = _DTypeSpec(bits=8, is_float=False, signed=True)
-    FP8_E4M3 = _DTypeSpec(bits=8, is_float=True, signed=True)
-    FP8_E5M2 = _DTypeSpec(bits=8, is_float=True, signed=True)
+    FP8_E4M3 = _DTypeSpec(bits=8, is_float=True, signed=True, variant="e4m3")
+    FP8_E5M2 = _DTypeSpec(bits=8, is_float=True, signed=True, variant="e5m2")
     NF4 = _DTypeSpec(bits=4, is_float=True, signed=True)
 
     # ------------------------------------------------------------------
