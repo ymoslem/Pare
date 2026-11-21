@@ -39,6 +39,8 @@ Reference: https://arxiv.org/abs/2211.10438
 
 from __future__ import annotations
 
+import warnings
+
 import torch
 import torch.nn as nn
 from torch import Tensor
@@ -150,7 +152,7 @@ class _LayerwiseSmoothQuant:
             act_stats = _collect_max_abs(layer, named_linears, inps, pe, device, quantizer.config)
 
             # ── 2. Compute smooth factors and fuse into predecessor layers ─
-            _apply_smooth_groups(layer, named_linears, act_stats, quantizer.config)
+            smoothed = _apply_smooth_groups(layer, named_linears, act_stats, quantizer.config)
 
             # ── 3. INT8 quantize all linear layers (quantize_inputs=True) ─
             layer_prefix = f"{layers_path}.{li}"
@@ -170,7 +172,8 @@ class _LayerwiseSmoothQuant:
 
             layer.cpu()
             torch.cuda.empty_cache()
-            print(f"[pare] SmoothQuant layer {li + 1}/{n_layers} done", flush=True)
+            tag = "smoothed" if smoothed else "no smoothing (post-norm)"
+            print(f"[pare] SmoothQuant layer {li + 1}/{n_layers} done [{tag}]", flush=True)
 
         return model
 
@@ -232,39 +235,65 @@ def _apply_smooth_groups(
     named_linears: dict[str, nn.Linear],
     act_stats: dict[str, Tensor],
     config: QuantConfig,
-) -> None:
+) -> bool:
     """Compute smooth factors and fuse into predecessor layers.
 
     Handles the same four groups as AWQ but uses the closed-form SmoothQuant
-    formula instead of a grid search.
+    formula instead of a grid search. The fusion targets follow the same
+    rules as ``pare.schemes.awq._apply_awq_groups``: a scale may only be
+    fused into the norm or linear layer that directly feeds the layers being
+    scaled, otherwise the block no longer computes the same function.
+
+    Returns True if smoothing was applied, False if the block is post-norm
+    (no ``input_layernorm``) and was left unsmoothed.
     """
+    if not hasattr(layer, "input_layernorm"):
+        warnings.warn(
+            "Post-norm block detected (no `input_layernorm`): SmoothQuant scale "
+            "fusion is skipped to avoid corrupting weights. These layers are "
+            "quantized to INT8 weights and activations without smoothing.",
+            stacklevel=2,
+        )
+        return False
+
     alpha = config.smooth_alpha
     attn  = layer.self_attn
     mlp   = layer.mlp
 
     # ── Group 1: input_layernorm → [q_proj, k_proj, v_proj] ──────────
-    if hasattr(layer, "input_layernorm") and hasattr(attn, "q_proj"):
+    if hasattr(attn, "q_proj"):
         x_max = act_stats.get("self_attn.q_proj")
         if x_max is not None:
             fcs = [attn.q_proj, attn.k_proj, attn.v_proj]
             s   = _smooth_factor(x_max, fcs, alpha)
             _scale_ln_fcs(layer.input_layernorm, fcs, s)
 
-    # ── Group 2: v_proj → [o_proj] (MHA only, skipped for GQA) ──────
+    # ── Group 2: v_proj → [o_proj] ───────────────────────────────────
+    # Skipped for GQA, where v_proj and o_proj dimensions differ, and when a
+    # v_norm sits between the two: a norm does not commute with a
+    # per-channel scale, so the scale cannot be fused through it.
     if (hasattr(attn, "v_proj") and hasattr(attn, "o_proj")
+            and not hasattr(attn, "v_norm")
             and attn.v_proj.out_features == attn.o_proj.in_features):
         x_max = act_stats.get("self_attn.o_proj")
         if x_max is not None:
             s = _smooth_factor(x_max, [attn.o_proj], alpha)
             _scale_fc_fc(attn.v_proj, attn.o_proj, s)
 
-    # ── Group 3: post_attention_layernorm → [gate_proj, up_proj] ─────
-    if hasattr(layer, "post_attention_layernorm") and hasattr(mlp, "gate_proj"):
+    # ── Group 3: [ln] → [gate_proj, up_proj] ──────────────────────────
+    # The norm that precedes the MLP is post_attention_layernorm in
+    # Llama/Mistral/Qwen and pre_feedforward_layernorm in sandwich-norm
+    # blocks (Gemma-3, Gemma-4), where post_attention_layernorm feeds the
+    # attention residual instead.
+    mlp_ln = getattr(layer, "pre_feedforward_layernorm", None) or getattr(
+        layer, "post_attention_layernorm", None
+    )
+    if mlp_ln is not None and hasattr(mlp, "gate_proj"):
         x_max = act_stats.get("mlp.gate_proj")
         if x_max is not None:
             fcs = [mlp.gate_proj, mlp.up_proj]
             s   = _smooth_factor(x_max, fcs, alpha)
-            _scale_ln_fcs(layer.post_attention_layernorm, fcs, s)
+            _scale_ln_fcs(mlp_ln, fcs, s)
 
     # ── Group 4: up_proj → [down_proj] ───────────────────────────────
     if (hasattr(mlp, "up_proj") and hasattr(mlp, "down_proj")
@@ -273,6 +302,8 @@ def _apply_smooth_groups(
         if x_max is not None:
             s = _smooth_factor(x_max, [mlp.down_proj], alpha)
             _scale_fc_fc(mlp.up_proj, mlp.down_proj, s)
+
+    return True
 
 
 def _smooth_factor(

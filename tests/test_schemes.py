@@ -8,6 +8,7 @@ from pare import QuantConfig, quantize
 from pare.layers.linear import QuantizedLinear
 from pare.schemes.awq import _apply_awq_groups
 from pare.schemes.rtn import RTNQuantizer
+from pare.schemes.smoothquant import _apply_smooth_groups
 
 
 # ---------------------------------------------------------------------------
@@ -325,3 +326,90 @@ class TestAWQSandwichNormFusionTarget:
 
         assert torch.equal(block.self_attn.o_proj.weight.data, o_before), \
             "o_proj was modified despite a v_norm sitting before it — Group 2 guard failed"
+
+
+# ---------------------------------------------------------------------------
+# SmoothQuant fusion targets
+#
+# Smoothing rescales a norm (or linear) output by 1/s and the following
+# weights by s. That only leaves the block's function unchanged when the
+# rescaled module feeds those weights directly, so the fusion targets must
+# follow the block's real dataflow, exactly as for AWQ above.
+# ---------------------------------------------------------------------------
+
+def _attn_forward(attn: nn.Module, u: torch.Tensor) -> torch.Tensor:
+    # Stand-in for attention: q and k produce a per-token weight on v.
+    weight = torch.tanh((attn.q_proj(u) * attn.k_proj(u)).sum(-1, keepdim=True))
+    return attn.o_proj(attn.v_proj(u) * weight)
+
+
+def _mlp_forward(mlp: nn.Module, u: torch.Tensor) -> torch.Tensor:
+    return mlp.down_proj(nn.functional.silu(mlp.gate_proj(u)) * mlp.up_proj(u))
+
+
+def _pre_norm_forward(block: nn.Module, x: torch.Tensor) -> torch.Tensor:
+    h = x + _attn_forward(block.self_attn, block.input_layernorm(x))
+    return h + _mlp_forward(block.mlp, block.post_attention_layernorm(h))
+
+
+def _sandwich_norm_forward(block: nn.Module, x: torch.Tensor) -> torch.Tensor:
+    h = x + block.post_attention_layernorm(
+        _attn_forward(block.self_attn, block.input_layernorm(x))
+    )
+    return h + block.post_feedforward_layernorm(
+        _mlp_forward(block.mlp, block.pre_feedforward_layernorm(h))
+    )
+
+
+class TestSmoothQuantFusionTargets:
+    D = 32
+
+    def _stats(self) -> dict:
+        torch.manual_seed(1)
+        names = ["self_attn.q_proj", "self_attn.o_proj", "mlp.gate_proj", "mlp.down_proj"]
+        return {n: torch.rand(self.D) * 5 + 0.1 for n in names}
+
+    def _config(self) -> QuantConfig:
+        return QuantConfig(bits=8, scheme="smoothquant", granularity="per_channel")
+
+    def _smooth(self, block: nn.Module) -> bool:
+        linears = {n: m for n, m in block.named_modules() if isinstance(m, nn.Linear)}
+        return _apply_smooth_groups(block, linears, self._stats(), self._config())
+
+    @pytest.mark.parametrize(
+        "block_cls, forward",
+        [(_FakeBlockPreNorm, _pre_norm_forward), (_FakeBlockSandwichNorm, _sandwich_norm_forward)],
+    )
+    def test_smoothing_preserves_block_function(self, block_cls, forward):
+        torch.manual_seed(0)
+        block = block_cls(self.D).double()
+        x = torch.randn(4, 6, self.D, dtype=torch.double)
+        with torch.no_grad():
+            y_before = forward(block, x)
+            gate_before = block.mlp.gate_proj.weight.clone()
+            assert self._smooth(block)
+            y_after = forward(block, x)
+
+        assert not torch.equal(block.mlp.gate_proj.weight, gate_before), "smoothing did not fire"
+        assert torch.allclose(y_after, y_before, rtol=1e-9, atol=1e-9)
+
+    def test_post_norm_block_is_left_untouched(self):
+        torch.manual_seed(0)
+        block = _FakeBlockPostNorm(self.D)
+        before = {n: p.detach().clone() for n, p in block.named_parameters()}
+
+        with pytest.warns(UserWarning, match="Post-norm block"):
+            assert not self._smooth(block)
+
+        for name, param in block.named_parameters():
+            assert torch.equal(param, before[name]), f"{name} was modified on a post-norm block"
+
+    def test_v_norm_blocks_group2_fusion(self):
+        torch.manual_seed(0)
+        block = _FakeBlockSandwichNorm(self.D, with_v_norm=True)
+        o_before = block.self_attn.o_proj.weight.data.clone()
+
+        self._smooth(block)
+
+        assert torch.equal(block.self_attn.o_proj.weight.data, o_before), \
+            "o_proj was modified despite a v_norm sitting before it"
