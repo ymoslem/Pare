@@ -36,3 +36,34 @@ jobs:
 
       - name: Check README numbers against results
         run: python scripts/check_readme_numbers.py
+
+  notebooks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install CPU-only PyTorch
+        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install Pare, the notebook kernel and the model libraries
+        run: pip install -e . nbclient nbformat ipykernel matplotlib transformers datasets
+
+      # Notebooks 01 and 08 need no downloads and 02 and 03 only GPT-2 and
+      # WikiText-2; 04 to 07 are run by hand (04 and 05 download Qwen2.5-0.5B).
+      - name: Execute notebooks 01, 02, 03 and 08
+        run: |
+          python - <<'EOF'
+          import nbformat
+          from nbclient import NotebookClient
+          for name in ["01_quantization_basics", "02_rtn", "03_gptq", "08_turboquant"]:
+              nb = nbformat.read(f"notebooks/{name}.ipynb", as_version=4)
+              NotebookClient(nb, timeout=1200, kernel_name="python3",
+                             resources={"metadata": {"path": "notebooks"}}).execute()
+              print("executed", name)
+          EOF
