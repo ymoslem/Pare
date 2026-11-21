@@ -137,6 +137,32 @@ class TestConfigForLayer:
         assert effective.effective_dtype == QuantDtype.INT4
 
 
+class TestForwardErrorsSurface:
+    """A failing calibration forward must raise, not disable mixed precision."""
+
+    class _Broken(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.fc = nn.Linear(32, 16, bias=False)
+
+        def forward(self, x):
+            raise RuntimeError("forward failed")
+
+    def test_score_layers_raises(self):
+        model = self._Broken()
+        with pytest.raises(RuntimeError, match="forward failed"):
+            score_layers(model, [torch.randn(2, 4, 32)], bits=4,
+                         granularity="per_channel", group_size=32, device="cpu")
+        assert len(model.fc._forward_hooks) == 0, "hooks were left on the model"
+
+    def test_quantize_with_sensitive_bits_raises(self):
+        from pare import quantize
+
+        cfg = QuantConfig(bits=4, scheme="rtn", granularity="per_channel", sensitive_bits=8)
+        with pytest.raises(RuntimeError, match="forward failed"):
+            quantize(self._Broken(), cfg, calibration_data=[torch.randn(2, 4, 32)])
+
+
 # ---------------------------------------------------------------------------
 # End-to-end: quantize() with sensitive_bits
 # ---------------------------------------------------------------------------

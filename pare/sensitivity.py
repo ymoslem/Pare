@@ -36,13 +36,17 @@ def score_layers(
         bits:             Target quantization bit-width (used for RTN proxy).
         granularity:      ``"per_channel"`` or ``"per_group"``.
         group_size:       Group size for per-group granularity.
-        device:           Device the model is on.
+        device:           Device to run the forward passes on. The model is
+                          moved there.
         n_samples:        Max number of token activations to collect per layer.
 
     Returns:
         ``{layer_name: relative_error}`` for every ``nn.Linear`` that fired
         during the forward passes.  Layers that were not reached (e.g. unused
         experts) are absent from the dict.
+
+    Raises:
+        Any exception raised by the model's forward pass.
     """
     from pare.core.dtype import QuantDtype
     from pare.core.functional import dequantize_tensor, quantize_tensor
@@ -65,18 +69,19 @@ def score_layers(
         if isinstance(module, nn.Linear):
             hooks.append(module.register_forward_hook(_make_hook(name)))
 
+    model.to(device)
     model.eval()
-    with torch.no_grad():
-        for batch in calibration_data[:8]:
-            try:
+    try:
+        with torch.no_grad():
+            for batch in calibration_data[:8]:
+                # A failing forward pass must surface: without activations no
+                # layer is scored and mixed precision would be skipped silently.
                 model(batch.to(device))
-            except Exception:
-                pass
-            if all(len(v) >= n_samples for v in activations.values()):
-                break
-
-    for h in hooks:
-        h.remove()
+                if all(len(v) >= n_samples for v in activations.values()):
+                    break
+    finally:
+        for h in hooks:
+            h.remove()
 
     scores: dict[str, float] = {}
     for name, module in model.named_modules():
