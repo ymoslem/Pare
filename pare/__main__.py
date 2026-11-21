@@ -113,9 +113,8 @@ def cmd_quantize(args: argparse.Namespace) -> None:
     torch_dtype = dtype_map[args.dtype]
 
     print(f"[pare] Loading {args.model} ...", flush=True)
-    tokenizer: Any = AutoTokenizer.from_pretrained(  # type: ignore[no-untyped-call]
-        args.model, token=args.token
-    )
+    auto_tokenizer: Any = AutoTokenizer   # from_pretrained is untyped in transformers
+    tokenizer = auto_tokenizer.from_pretrained(args.model, token=args.token)
     model: Any = AutoModelForCausalLM.from_pretrained(
         args.model, torch_dtype=torch_dtype, token=args.token, device_map="auto",
     )
@@ -155,9 +154,8 @@ def cmd_eval(args: argparse.Namespace) -> None:
     torch_dtype = dtype_map[args.dtype]
 
     print(f"[pare] Loading {args.model} ...", flush=True)
-    tokenizer: Any = AutoTokenizer.from_pretrained(  # type: ignore[no-untyped-call]
-        args.model, token=args.token
-    )
+    auto_tokenizer: Any = AutoTokenizer   # from_pretrained is untyped in transformers
+    tokenizer = auto_tokenizer.from_pretrained(args.model, token=args.token)
     model: Any = AutoModelForCausalLM.from_pretrained(
         args.model, torch_dtype=torch_dtype, token=args.token, device_map="auto",
     )
