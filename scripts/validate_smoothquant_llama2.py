@@ -20,8 +20,8 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
-from datasets import load_dataset
 from pare import QuantConfig, quantize
+from pare.calibration.data import load_wikitext2_calibration
 from pare.eval.perplexity import evaluate_perplexity
 
 MODEL_ID   = "meta-llama/Llama-2-7b-hf"
@@ -45,10 +45,7 @@ def main():
     print(f"[validate] FP16 loaded: {vram_fp16:.1f} GB VRAM", flush=True)
 
     print("[validate] Preparing calibration data ...", flush=True)
-    ds = load_dataset("Salesforce/wikitext", "wikitext-2-raw-v1", split="train")
-    text = "\n\n".join(ds["text"])
-    tokens = tokenizer(text, return_tensors="pt").input_ids
-    calib_data = [tokens[:, i * SEQ_LEN : (i + 1) * SEQ_LEN] for i in range(N_CALIB)]
+    calib_data = load_wikitext2_calibration(tokenizer, n_samples=N_CALIB, seq_len=SEQ_LEN)
     print(f"[validate] {len(calib_data)} calibration sequences × {SEQ_LEN} tokens", flush=True)
 
     config = QuantConfig(

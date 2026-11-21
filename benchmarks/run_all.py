@@ -40,11 +40,11 @@ import time
 from pathlib import Path
 
 import torch
-from datasets import load_dataset
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from pare import QuantConfig, quantize
+from pare.calibration.data import load_wikitext2_calibration
 from pare.eval.perplexity import evaluate_perplexity
 from pare.eval.throughput import benchmark_throughput
 
@@ -80,10 +80,7 @@ def load_model(model_id: str, token: str | None) -> tuple:
 
 
 def get_calibration_data(tokenizer, seq_len: int, n_calib: int) -> list:
-    ds   = load_dataset("Salesforce/wikitext", "wikitext-2-raw-v1", split="train")
-    text = "\n\n".join(ds["text"])
-    toks = tokenizer(text, return_tensors="pt").input_ids
-    return [toks[:, i * seq_len : (i + 1) * seq_len] for i in range(n_calib)]
+    return load_wikitext2_calibration(tokenizer, n_samples=n_calib, seq_len=seq_len)
 
 
 def run_one(

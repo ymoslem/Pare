@@ -103,10 +103,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def cmd_quantize(args: argparse.Namespace) -> None:
     import torch
-    from datasets import load_dataset
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
     from pare import QuantConfig, quantize, save_quantized
+    from pare.calibration.data import load_wikitext2_calibration
 
     dtype_map = {"float16": torch.float16, "bfloat16": torch.bfloat16, "float32": torch.float32}
     torch_dtype = dtype_map[args.dtype]
@@ -130,11 +130,9 @@ def cmd_quantize(args: argparse.Namespace) -> None:
     calib_data = None
     if args.scheme != "rtn":
         print(f"[pare] Preparing {args.n_calib} calibration sequences ...", flush=True)
-        ds = load_dataset("Salesforce/wikitext", "wikitext-2-raw-v1", split="train")
-        text = "\n\n".join(ds["text"])
-        tokens = tokenizer(text, return_tensors="pt").input_ids
-        seq_len = args.calib_seqlen
-        calib_data = [tokens[:, i * seq_len : (i + 1) * seq_len] for i in range(args.n_calib)]
+        calib_data = load_wikitext2_calibration(
+            tokenizer, n_samples=args.n_calib, seq_len=args.calib_seqlen
+        )
 
     print(f"[pare] Quantizing with {args.scheme} INT{args.bits} ...", flush=True)
     quantize(model, config, calibration_data=calib_data, device=args.device)

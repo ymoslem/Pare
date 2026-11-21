@@ -68,14 +68,11 @@ def gpt2_calibration_data(gpt2_model_and_tokenizer, wikitext2_test):
     For a production run you would use the training split; for smoke
     tests any text produces a valid (if noisy) Hessian estimate.
     """
-    import torch
+    from pare.calibration.data import chunk_tokens
     _, tokenizer = gpt2_model_and_tokenizer
     text = "\n\n".join(wikitext2_test["text"])
     tokens = tokenizer.encode(text, return_tensors="pt")  # [1, n_tokens]
-
-    seq_len = 512
-    n_calib = 16
-    return [tokens[:, i * seq_len : (i + 1) * seq_len] for i in range(n_calib)]
+    return chunk_tokens(tokens, n_samples=16, seq_len=512)
 
 
 # ---------------------------------------------------------------------------
@@ -99,11 +96,8 @@ def qwen_model_and_tokenizer():
 @pytest.fixture(scope="session")
 def qwen_calibration_data(qwen_model_and_tokenizer, wikitext2_test):
     """8 calibration sequences × 512 tokens for Qwen2.5-0.5B GPTQ."""
-    import torch
+    from pare.calibration.data import chunk_tokens
     _, tokenizer = qwen_model_and_tokenizer
     text = "\n\n".join(wikitext2_test["text"])
     tokens = tokenizer(text, return_tensors="pt").input_ids
-
-    seq_len = 512
-    n_calib = 8
-    return [tokens[:, i * seq_len : (i + 1) * seq_len] for i in range(n_calib)]
+    return chunk_tokens(tokens, n_samples=8, seq_len=512)

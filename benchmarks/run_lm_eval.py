@@ -41,6 +41,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from pare import QuantConfig, quantize
+from pare.calibration.data import load_wikitext2_calibration
 
 RESULTS_DIR = Path(__file__).parent.parent / "results"
 
@@ -110,11 +111,7 @@ def main():
         model_fp16.eval()
 
         # Calibration data (needed by GPTQ/AWQ/SmoothQuant)
-        from datasets import load_dataset
-        ds   = load_dataset("Salesforce/wikitext", "wikitext-2-raw-v1", split="train")
-        text = "\n\n".join(ds["text"])
-        toks = tokenizer(text, return_tensors="pt").input_ids
-        calib_data = [toks[:, i * SEQ_LEN : (i + 1) * SEQ_LEN] for i in range(N_CALIB)]
+        calib_data = load_wikitext2_calibration(tokenizer, n_samples=N_CALIB, seq_len=SEQ_LEN)
 
         for method_key in method_keys:
             tag = f"{model_key}/{method_key}"

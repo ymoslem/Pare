@@ -9,11 +9,11 @@ Expected AWQ INT4: ~5.55–5.65 delta (similar to GPTQ, sometimes slightly bette
 """
 
 import os, sys, time, torch
-from datasets import load_dataset
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 
 from pare import QuantConfig, quantize
+from pare.calibration.data import load_wikitext2_calibration
 from pare.eval.perplexity import evaluate_perplexity
 
 MODEL_ID  = "meta-llama/Llama-2-7b-hf"
@@ -34,10 +34,7 @@ def main():
     model.eval()
 
     print("[validate] Preparing calibration data ...", flush=True)
-    ds    = load_dataset("Salesforce/wikitext", "wikitext-2-raw-v1", split="train")
-    text  = "\n\n".join(ds["text"])
-    toks  = tokenizer(text, return_tensors="pt").input_ids
-    calib = [toks[:, i * SEQ_LEN : (i + 1) * SEQ_LEN] for i in range(N_CALIB)]
+    calib = load_wikitext2_calibration(tokenizer, n_samples=N_CALIB, seq_len=SEQ_LEN)
 
     config = QuantConfig(bits=4, scheme="awq", granularity="per_group", group_size=128)
 

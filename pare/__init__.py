@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import torch
 import torch.nn as nn
 
 from pare.config import QuantConfig
@@ -31,8 +32,10 @@ def quantize(
         config:           A ``QuantConfig`` describing the target dtype, scheme,
                           granularity, and scheme-specific hyperparameters.
         calibration_data: Required for GPTQ, AWQ, and SmoothQuant.
-                          A list of input_ids tensors, each shaped [batch, seq_len].
-                          Ignored for RTN.
+                          A list of input_ids tensors, one sequence each,
+                          shaped [seq_len] or [1, seq_len]. Ignored for RTN.
+                          ``pare.calibration.data.load_wikitext2_calibration``
+                          builds the standard WikiText-2 set.
         device:           Device to run calibration forward passes on (GPTQ only).
 
     Returns:
@@ -50,6 +53,9 @@ def quantize(
         config = QuantConfig(bits=4, scheme="gptq", group_size=128)
         model = quantize(model, config, calibration_data=calib_ids, device="cuda")
     """
+    if calibration_data is not None:
+        calibration_data = _as_batches(calibration_data)
+
     # Mixed-precision sensitivity: score layers BEFORE quantization so we
     # still have the original FP16 weights.  RTN is used as a fast proxy.
     layer_bits_override: dict[str, int] = {}
@@ -99,3 +105,21 @@ def quantize(
 
     else:
         raise ValueError(f"Unknown scheme: {scheme!r}")
+
+
+def _as_batches(calibration_data: list) -> list[torch.Tensor]:
+    """Give every 1-D calibration sequence a batch dimension.
+
+    The calibration code runs each tensor through the model as one batch, so
+    a bare ``[seq_len]`` sequence becomes ``[1, seq_len]``. Tensors that
+    already carry a batch dimension, including non-token inputs for models
+    that take features directly, pass through unchanged.
+    """
+    batches = []
+    for i, seq in enumerate(calibration_data):
+        if not isinstance(seq, torch.Tensor):
+            raise TypeError(
+                f"calibration_data[{i}] is {type(seq).__name__}, expected a tensor"
+            )
+        batches.append(seq.unsqueeze(0) if seq.dim() == 1 else seq)
+    return batches
